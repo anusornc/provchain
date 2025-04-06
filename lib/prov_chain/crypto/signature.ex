@@ -21,6 +21,21 @@ defmodule ProvChain.Crypto.Signature do
   end
 
   @doc """
+  Derives a public key from a private key.
+
+  ## Parameters
+    - private_key: The private key
+
+  ## Returns
+    {private_key, public_key} tuple
+  """
+  @spec derive_public_key(binary()) :: {binary(), binary()}
+  def derive_public_key(private_key) when is_binary(private_key) do
+    public_key = :crypto.hash(:sha256, private_key)
+    {private_key, public_key}
+  end
+
+  @doc """
   Signs data with a private key.
 
   ## Parameters
