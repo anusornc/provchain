@@ -114,4 +114,4 @@ This project aims to surpass existing blockchain solutions like PHANTOM through 
 
 ## License
 
-[Specify your license here]
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
