@@ -6,6 +6,8 @@ defmodule ProvChain.BlockDag.BlockTest do
   alias ProvChain.Crypto.Signature
   alias ProvChain.Test.ProvOData
 
+  
+
   describe "new/5" do
     test "creates a block with milk collection PROV-O transaction" do
       prev_hashes = [Hash.hash("previous-block")]
@@ -20,13 +22,15 @@ defmodule ProvChain.BlockDag.BlockTest do
       assert is_binary(block.hash)
       assert block.prev_hashes == prev_hashes
       assert is_integer(block.timestamp)
-      assert block.height == 1  # In simplified implementation, height is 1 for non-genesis
+      # In simplified implementation, height is 1 for non-genesis
+      assert block.height == 1
       assert block.validator == validator
       assert block.transactions == transactions
       assert is_binary(block.merkle_root)
       assert block.supply_chain_type == supply_chain_type
       assert block.metadata == metadata
-      assert block.dag_weight == 2  # length(prev_hashes) + height = 1 + 1
+      # length(prev_hashes) + height = 1 + 1
+      assert block.dag_weight == 2
       assert block.signature == nil
     end
 
@@ -38,8 +42,10 @@ defmodule ProvChain.BlockDag.BlockTest do
       block = Block.new([], transactions, validator, "genesis_block")
 
       assert block.height == 0
-      assert block.dag_weight == 0  # length([]) + height(0) = 0
-      assert length(block.transactions) == 4  # Contains all 4 connected transactions
+      # length([]) + height(0) = 0
+      assert block.dag_weight == 0
+      # Contains all 4 connected transactions
+      assert length(block.transactions) == 4
     end
   end
 
@@ -52,7 +58,8 @@ defmodule ProvChain.BlockDag.BlockTest do
       signed_block = Block.sign(block, private_key)
 
       assert is_binary(signed_block.signature)
-      assert signed_block.hash == block.hash  # Hash shouldn't change
+      # Hash shouldn't change
+      assert signed_block.hash == block.hash
     end
   end
 

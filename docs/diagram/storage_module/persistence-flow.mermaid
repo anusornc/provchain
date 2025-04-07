@@ -1,0 +1,53 @@
+flowchart TD
+    subgraph External
+        B[Block Creation]
+        T[Transaction Creation]
+        Q[Query Request]
+    end
+    
+    subgraph ProvChain.Storage.Manager
+        SM[Storage Manager]
+    end
+    
+    subgraph Write_Path
+        ETS[ETS/DETS]
+        ROCKS[RocksDB]
+        NEO[Neo4j]
+    end
+    
+    subgraph Read_Path
+        CACHE[Cache Check]
+        DISK[Disk Check]
+        GRAPH[Graph Query]
+    end
+    
+    subgraph Consistency
+        CONS[Consistency Job]
+        REPAIR[Repair Operation]
+    end
+    
+    B --> SM
+    T --> SM
+    Q --> SM
+    
+    %% Write Flow
+    SM -->|"1. Write"| ROCKS
+    ROCKS -->|"2. Index"| NEO
+    NEO -->|"3. Cache"| ETS
+    
+    %% Read Flow
+    SM -->|"Query"| CACHE
+    CACHE -->|"Cache Miss"| DISK
+    DISK -->|"Relationship Query"| GRAPH
+    CACHE -->|"Cache Hit"| SM
+    DISK -->|"Found"| SM
+    GRAPH -->|"Result"| SM
+    
+    %% Consistency Flow
+    CONS -->|"Check"| ETS
+    CONS -->|"Check"| ROCKS
+    CONS -->|"Check"| NEO
+    CONS -->|"Inconsistency"| REPAIR
+    REPAIR -->|"Fix"| ETS
+    REPAIR -->|"Fix"| ROCKS
+    REPAIR -->|"Fix"| NEO

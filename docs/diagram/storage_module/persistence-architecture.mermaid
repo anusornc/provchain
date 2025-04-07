@@ -1,0 +1,83 @@
+classDiagram
+    class ProvChainStorageSupervisor {
+        start_link()
+        init()
+    }
+    
+    class ProvChainStorageManager {
+        save_block(block)
+        save_transaction(tx)
+        get_block(hash)
+        get_transaction(hash)
+        query_by_height(height)
+        query_by_type(type)
+        query_supply_chain_trace(entity_id)
+    }
+    
+    class ProvChainStorageMemoryStore {
+        init_tables()
+        put_block(hash, block)
+        put_transaction(hash, tx)
+        get_block(hash)
+        get_transaction(hash)
+        get_tip_set()
+        update_tip_set(blocks)
+    }
+    
+    class ProvChainStorageBlockStore {
+        init()
+        put_block(block)
+        get_block(hash)
+        get_blocks_by_height(height)
+        get_blocks_by_validator(validator)
+        get_latest_blocks(count)
+    }
+    
+    class ProvChainStorageTransactionStore {
+        init()
+        put_transaction(tx)
+        get_transaction(hash)
+        get_transactions_by_type(type)
+        get_transactions_by_entity(entity_id)
+    }
+    
+    class ProvChainStorageIndexStore {
+        init()
+        update_height_index(block)
+        update_validator_index(block)
+        update_type_index(block)
+        query_height_index(height)
+        query_type_index(type)
+    }
+    
+    class ProvChainStorageKnowledgeGraph {
+        init()
+        add_entity(entity)
+        add_activity(activity)
+        add_agent(agent)
+        add_relationship(relationship)
+        query_entity_history(entity_id)
+        query_supply_chain_trace(entity_id)
+        query_agent_activities(agent_id)
+    }
+    
+    class ProvChainStorageConsistency {
+        schedule_consistency_check()
+        validate_memory_vs_disk()
+        validate_disk_vs_graph()
+        repair_inconsistencies()
+    }
+    
+    ProvChainStorageSupervisor --> ProvChainStorageManager
+    ProvChainStorageSupervisor --> ProvChainStorageMemoryStore
+    ProvChainStorageSupervisor --> ProvChainStorageBlockStore
+    ProvChainStorageSupervisor --> ProvChainStorageTransactionStore
+    ProvChainStorageSupervisor --> ProvChainStorageIndexStore
+    ProvChainStorageSupervisor --> ProvChainStorageKnowledgeGraph
+    ProvChainStorageSupervisor --> ProvChainStorageConsistency
+    
+    ProvChainStorageManager --> ProvChainStorageMemoryStore : Uses for caching
+    ProvChainStorageManager --> ProvChainStorageBlockStore : Persists blocks
+    ProvChainStorageManager --> ProvChainStorageTransactionStore : Persists transactions
+    ProvChainStorageManager --> ProvChainStorageIndexStore : Updates indexes
+    ProvChainStorageManager --> ProvChainStorageKnowledgeGraph : Updates knowledge graph

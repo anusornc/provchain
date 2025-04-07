@@ -1,0 +1,51 @@
+flowchart TB
+    subgraph API_Layer
+        API[API Endpoints]
+        CLI[CLI Interface]
+    end
+    
+    subgraph Core_Layer
+        BLK[Block Module]
+        TX[Transaction Module]
+        DAG[DAG Operations]
+        VAL[Validator]
+        CONS[Consensus]
+    end
+    
+    subgraph Storage_Layer
+        MEM[Memory Store\nETS/DETS]
+        DB[Block/Tx Store\nRocksDB]
+        KG[Knowledge Graph\nNeo4j]
+        IDX[Index Store]
+    end
+    
+    subgraph Network_Layer
+        P2P[P2P Network]
+        SYNC[Sync Protocol]
+    end
+    
+    %% Connections between components
+    API <--> Core_Layer
+    CLI <--> Core_Layer
+    Core_Layer <--> Storage_Layer
+    Core_Layer <--> Network_Layer
+    
+    %% Detailed connections
+    BLK <--> DAG
+    TX <--> DAG
+    BLK <--> VAL
+    TX <--> VAL
+    VAL <--> CONS
+    
+    %% Storage connections
+    BLK <--> MEM
+    TX <--> MEM
+    BLK <--> DB
+    TX <--> DB
+    BLK <--> IDX
+    TX <--> KG
+    
+    %% Network connections
+    BLK <--> P2P
+    TX <--> P2P
+    DAG <--> SYNC

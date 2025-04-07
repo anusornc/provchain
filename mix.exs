@@ -5,7 +5,8 @@ defmodule ProvChain.MixProject do
     [
       app: :provchain,
       version: "0.1.0",
-      elixir: "~> 1.18",  # Latest stable Elixir version (1.18.3 as of December 2024)
+      # Latest stable Elixir version (1.18.3 as of December 2024)
+      elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -16,7 +17,7 @@ defmodule ProvChain.MixProject do
   # Run "mix help compile.app" to learn about applications
   def application do
     [
-      extra_applications: [:logger, :crypto],
+      extra_applications: [:logger, :crypto, :mnesia],
       mod: {ProvChain.Application, []}
     ]
   end
@@ -29,13 +30,21 @@ defmodule ProvChain.MixProject do
   defp deps do
     [
       # Core libraries
-      {:libgraph, "~> 0.16.0"},           # Graph data structures
-      {:jason, "~> 1.4"},                 # JSON encoding/decoding
+      # Graph data structures
+      {:libgraph, "~> 0.16.0"},
+      # JSON encoding/decoding
+      {:jason, "~> 1.4"},
+
+      {:telemetry, "~> 1.3"},
+      {:mox, "~> 1.2"},
 
       # Development and testing
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}, # Code quality checks
-      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}, # Static analysis
-      {:ex_doc, "~> 0.30", only: :dev, runtime: false}         # Documentation generation
+      # Code quality checks
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      # Static analysis
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      # Documentation generation
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
     ]
   end
 

@@ -103,6 +103,14 @@ defmodule ProvChain.Utils.Serialization do
     |> Enum.into(%{})
   end
 
+  @spec struct_to_map(struct()) :: map()
+  def struct_to_map(struct) when is_struct(struct) do
+    struct
+    |> Map.from_struct()
+    |> Enum.map(fn {k, v} -> {k, prepare_value(v)} end)
+    |> Enum.into(%{})
+  end
+
   # Sanitizes data for JSON encoding, removing any problematic elements
   @spec sanitize_for_json(term()) :: term()
   defp sanitize_for_json(data) when is_map(data) do
@@ -137,14 +145,17 @@ defmodule ProvChain.Utils.Serialization do
   defp is_json_encodable(_), do: false
 
   # Helper functions for handling special types
-  @spec prepare_value(term()) :: term()
-  defp prepare_value(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
-  defp prepare_value(%NaiveDateTime{} = dt), do: NaiveDateTime.to_iso8601(dt)
-  defp prepare_value(%Date{} = d), do: Date.to_iso8601(d)
-  defp prepare_value(%Time{} = t), do: Time.to_iso8601(t)
-  defp prepare_value(map) when is_map(map) and not is_struct(map) do
-    map |> Enum.map(fn {k, v} -> {k, prepare_value(v)} end) |> Enum.into(%{})
-  end
-  defp prepare_value(list) when is_list(list), do: Enum.map(list, &prepare_value/1)
-  defp prepare_value(other), do: other
+@spec prepare_value(term()) :: term()
+defp prepare_value(%DateTime{} = dt), do: DateTime.to_iso8601(dt)
+defp prepare_value(%NaiveDateTime{} = dt), do: NaiveDateTime.to_iso8601(dt)
+defp prepare_value(%Date{} = d), do: Date.to_iso8601(d)
+defp prepare_value(%Time{} = t), do: Time.to_iso8601(t)
+defp prepare_value(struct) when is_struct(struct), do: struct_to_map(struct)
+defp prepare_value(map) when is_map(map) and not is_struct(map) do
+  map |> Enum.map(fn {k, v} -> {k, prepare_value(v)} end) |> Enum.into(%{})
+end
+defp prepare_value(list) when is_list(list), do: Enum.map(list, &prepare_value/1)
+defp prepare_value(binary) when is_binary(binary), do: binary
+defp prepare_value(other), do: other
+  
 end
