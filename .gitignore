@@ -23,7 +23,8 @@ provchain-*.tar
 /tmp/
 
 # prevent data folder from being added to git
-/data/*
+/data/
+/data/**
 lib/.DS_Store
 lib/prov_chain/.DS_Store
 .DS_Store
