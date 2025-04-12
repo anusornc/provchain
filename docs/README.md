@@ -37,7 +37,7 @@
 | | Knowledge Graph | `bolt_sips` | Neo4j client |
 | | | `sparql_client` | SPARQL query support |
 | | | `redix` | Redis client for path caching |
-| | Additional Persistence | `exrockdb` | RocksDB for historical blocks |
+| | Additional Persistence | *(Mnesia extensions)* | เพิ่มประสิทธิภาพ Mnesia สำหรับข้อมูลประวัติศาสตร์ |
 | | | `nebulex` | Distributed multi-level caching |
 | | | `con_cache` | Concurrent caching |
 | **Network Layer** | P2P Communication | `libp2p` | Peer-to-peer networking |
