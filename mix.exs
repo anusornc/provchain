@@ -34,6 +34,7 @@ defmodule ProvChain.MixProject do
       {:libgraph, "~> 0.16.0"},
       # JSON encoding/decoding
       {:jason, "~> 1.4"},
+      {:eddy, "~> 1.0.0"},
 
       {:telemetry, "~> 1.3"},
       {:mox, "~> 1.2"},

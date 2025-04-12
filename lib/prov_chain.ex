@@ -27,7 +27,7 @@ defmodule ProvChain do
 
   ## Examples
 
-      iex> {private, public} = ProvChain.generate_keypair()
+      iex> {:ok, {private, public}} = ProvChain.generate_keypair()
       iex> byte_size(private) == 32
       true
       iex> byte_size(public) == 32

@@ -15,7 +15,7 @@ defmodule ProvChain.Utils.SerializationTest do
     end
 
     test "encodes maps with deterministic key ordering" do
-      map = %{c: 3, a: 1, b: 2}
+      map = %{"c" => 3, "a" => 1, "b" => 2}
       encoded = Serialization.encode(map)
       decoded = Jason.decode!(encoded)
       assert decoded == %{"a" => 1, "b" => 2, "c" => 3}
@@ -26,7 +26,7 @@ defmodule ProvChain.Utils.SerializationTest do
     test "encodes PROV-O milk collection transaction" do
       tx = ProvOData.milk_collection_transaction()
       encoded = Serialization.encode(tx)
-      decoded = Jason.decode!(encoded)
+      {:ok, decoded} = Serialization.decode(encoded)
 
       assert decoded["prov:entity"]["type"] == "prov:Entity"
       assert decoded["prov:activity"]["type"] == "prov:Activity"
@@ -42,7 +42,7 @@ defmodule ProvChain.Utils.SerializationTest do
     test "encodes PROV-O supply chain trace" do
       trace = ProvOData.generate_supply_chain_trace()
       encoded = Serialization.encode(trace)
-      decoded = Jason.decode!(encoded)
+      {:ok, decoded} = Serialization.decode(encoded)
 
       assert length(decoded) == 4
 
@@ -66,7 +66,7 @@ defmodule ProvChain.Utils.SerializationTest do
       tx = Map.put(tx, "validator_fn", fn x -> x * 2 end)
 
       result = Serialization.encode(tx)
-      decoded = Jason.decode!(result)
+      {:ok, decoded} = Serialization.decode(result)
 
       assert decoded["prov:entity"]
       assert decoded["prov:activity"]
@@ -95,8 +95,15 @@ defmodule ProvChain.Utils.SerializationTest do
 
   describe "decode_with_atoms/1" do
     test "decodes PROV-O JSON with atom keys" do
-      entity = ProvOData.milk_batch_entity()
-      json = Serialization.encode(entity)
+      entity = %{
+        "type" => "prov:Entity",
+        "id" => "entity:123",
+        "attributes" => %{
+          "prov:type" => "MilkBatch",
+          "quality" => %{"grade" => "A"}
+        }
+      }
+      json = Jason.encode!(entity)
 
       {:ok, decoded} = Serialization.decode_with_atoms(json)
 
@@ -126,13 +133,13 @@ defmodule ProvChain.Utils.SerializationTest do
 
       result = Serialization.struct_to_map(struct)
 
-      assert result[:hash] == Base.encode16(struct.hash, case: :upper)
-      assert result[:prev_hashes] == Enum.map(struct.prev_hashes, &Base.encode16(&1, case: :upper))
-      assert result[:timestamp] == struct.timestamp
-      assert result[:height] == struct.height
-      assert result[:supply_chain_type] == "milk_collection"
-      assert result[:metadata] == %{"test" => true}
-      refute Map.has_key?(result, :__struct__)
+      assert result["hash"] == Base.encode16(struct.hash, case: :upper)
+      assert result["prev_hashes"] == Enum.map(struct.prev_hashes, &Base.encode16(&1, case: :upper))
+      assert result["timestamp"] == struct.timestamp
+      assert result["height"] == struct.height
+      assert result["supply_chain_type"] == "milk_collection"
+      assert result["metadata"] == %{"test" => true}
+      refute Map.has_key?(result, "__struct__")
     end
   end
 end

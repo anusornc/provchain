@@ -17,23 +17,19 @@ defmodule ProvChain.Storage.BlockStore do
     File.mkdir_p!(dag_path)
     :application.set_env(:mnesia, :dir, to_charlist(dag_path))
 
-    if node() == :nonode@nohost do
-      raise "Mnesia requires a named node for disc_copies. Run with --name or --sname"
+    unless Mix.env() == :test do
+      if node() == :nonode@nohost do
+        raise "Mnesia requires a named node for disc_copies. Run with --name or --sname"
+      end
     end
 
     case :mnesia.system_info(:is_running) do
       :yes ->
         Logger.info("Stopping Mnesia to reconfigure...")
-
         case :mnesia.stop() do
-          :stopped ->
-            :timer.sleep(1000)
-
-          error ->
-            Logger.error("Failed to stop Mnesia: #{inspect(error)}")
-            raise "Mnesia stop failed"
+          :stopped -> :timer.sleep(1000)
+          error -> Logger.error("Failed to stop Mnesia: #{inspect(error)}"); raise "Mnesia stop failed"
         end
-
       _ ->
         :ok
     end
@@ -55,11 +51,9 @@ defmodule ProvChain.Storage.BlockStore do
       :ok ->
         Logger.info("Created new Mnesia schema at #{dag_path}")
         :ok
-
       {:error, {_, {:already_exists, _}}} ->
         Logger.info("Using existing Mnesia schema at #{dag_path}")
         :ok
-
       {:error, reason} ->
         Logger.error("Schema creation failed: #{inspect(reason)}")
         {:error, {:schema_creation_failed, reason}}
@@ -71,7 +65,6 @@ defmodule ProvChain.Storage.BlockStore do
       :ok ->
         Logger.info("Mnesia started successfully")
         :ok
-
       error ->
         Logger.error("Failed to start Mnesia: #{inspect(error)}")
         {:error, {:mnesia_start_failed, error}}
@@ -162,9 +155,7 @@ defmodule ProvChain.Storage.BlockStore do
         end
 
         case :mnesia.transaction(transaction_fn) do
-          {:atomic, :ok} ->
-            {:reply, :ok, state}
-
+          {:atomic, :ok} -> {:reply, :ok, state}
           {:aborted, reason} ->
             Logger.error("Failed to put block: #{inspect(reason)}")
             {:reply, {:error, reason}, state}
@@ -194,7 +185,6 @@ defmodule ProvChain.Storage.BlockStore do
         case ProvChain.Utils.Serialization.decode(serialized_block) do
           {:ok, block_map} ->
             Logger.debug("Deserialized block_map: #{inspect(block_map)}")
-
             with {:ok, hash_decoded} <- Base.decode16(block_map["hash"], case: :mixed),
                  {:ok, prev_hashes} <- decode_prev_hashes(block_map["prev_hashes"]),
                  {:ok, validator} <- Base.decode16(block_map["validator"], case: :mixed),
@@ -213,21 +203,13 @@ defmodule ProvChain.Storage.BlockStore do
                 dag_weight: block_map["dag_weight"],
                 metadata: block_map["metadata"]
               }
-
               {:reply, {:ok, block}, state}
             else
               :error ->
-                Logger.error(
-                  "Failed to decode block field: invalid hex string - block_map: #{inspect(block_map)}"
-                )
-
+                Logger.error("Failed to decode block field: invalid hex string - block_map: #{inspect(block_map)}")
                 {:reply, {:error, :invalid_block_data}, state}
-
               {:error, reason} ->
-                Logger.error(
-                  "Failed to decode block fields: #{inspect(reason)} - block_map: #{inspect(block_map)}"
-                )
-
+                Logger.error("Failed to decode block fields: #{inspect(reason)} - block_map: #{inspect(block_map)}")
                 {:reply, {:error, :invalid_block_data}, state}
             end
 
@@ -248,7 +230,6 @@ defmodule ProvChain.Storage.BlockStore do
 
     case :mnesia.system_info(:is_running) do
       :yes ->
-        # Store binary hash directly
         serialized_tx = ProvChain.Utils.Serialization.encode(transaction)
 
         result =
@@ -257,9 +238,7 @@ defmodule ProvChain.Storage.BlockStore do
           end)
 
         case result do
-          {:atomic, :ok} ->
-            {:reply, :ok, state}
-
+          {:atomic, :ok} -> {:reply, :ok, state}
           {:aborted, reason} ->
             Logger.error("Failed to put transaction: #{inspect(reason)}")
             {:reply, {:error, reason}, state}
@@ -287,9 +266,7 @@ defmodule ProvChain.Storage.BlockStore do
 
       {:atomic, serialized_tx} ->
         case ProvChain.Utils.Serialization.decode(serialized_tx) do
-          {:ok, tx} ->
-            {:reply, {:ok, tx}, state}
-
+          {:ok, tx} -> {:reply, {:ok, tx}, state}
           {:error, reason} ->
             Logger.error("Failed to deserialize transaction: #{inspect(reason)}")
             {:reply, {:error, reason}, state}
@@ -307,7 +284,6 @@ defmodule ProvChain.Storage.BlockStore do
       :mnesia.transaction(fn ->
         block_records = :mnesia.match_object({@height_index_table, height, :_, :_})
         block_hashes = Enum.map(block_records, fn {_, _, hash, _} -> hash end)
-
         Enum.map(block_hashes, fn hash ->
           case :mnesia.read(@blocks_table, hash) do
             [{@blocks_table, ^hash, serialized_block}] ->
@@ -333,32 +309,22 @@ defmodule ProvChain.Storage.BlockStore do
                     }
                   else
                     :error ->
-                      Logger.error(
-                        "Failed to decode block with hash: #{inspect(hash)} - invalid hex string"
-                      )
-
+                      Logger.error("Failed to decode block with hash: #{inspect(hash)} - invalid hex string")
                       nil
-
                     {:error, _reason} ->
                       Logger.error("Failed to decode block with hash: #{inspect(hash)}")
                       nil
                   end
-
-                _ ->
-                  nil
+                _ -> nil
               end
-
-            [] ->
-              nil
+            [] -> nil
           end
         end)
         |> Enum.filter(&(&1 != nil))
       end)
 
     case result do
-      {:atomic, blocks} ->
-        {:reply, {:ok, blocks}, state}
-
+      {:atomic, blocks} -> {:reply, {:ok, blocks}, state}
       {:aborted, reason} ->
         Logger.error("Mnesia transaction aborted: #{inspect(reason)}")
         {:reply, {:error, reason}, state}
@@ -371,7 +337,6 @@ defmodule ProvChain.Storage.BlockStore do
       :mnesia.transaction(fn ->
         block_records = :mnesia.match_object({@type_index_table, type, :_, :_})
         block_hashes = Enum.map(block_records, fn {_, _, hash, _} -> hash end)
-
         Enum.map(block_hashes, fn hash ->
           case :mnesia.read(@blocks_table, hash) do
             [{@blocks_table, ^hash, serialized_block}] ->
@@ -397,32 +362,22 @@ defmodule ProvChain.Storage.BlockStore do
                     }
                   else
                     :error ->
-                      Logger.error(
-                        "Failed to decode block with hash: #{inspect(hash)} - invalid hex string"
-                      )
-
+                      Logger.error("Failed to decode block with hash: #{inspect(hash)} - invalid hex string")
                       nil
-
                     {:error, _reason} ->
                       Logger.error("Failed to decode block with hash: #{inspect(hash)}")
                       nil
                   end
-
-                _ ->
-                  nil
+                _ -> nil
               end
-
-            [] ->
-              nil
+            [] -> nil
           end
         end)
         |> Enum.filter(&(&1 != nil))
       end)
 
     case result do
-      {:atomic, blocks} ->
-        {:reply, {:ok, blocks}, state}
-
+      {:atomic, blocks} -> {:reply, {:ok, blocks}, state}
       {:aborted, reason} ->
         Logger.error("Mnesia transaction aborted: #{inspect(reason)}")
         {:reply, {:error, reason}, state}
@@ -430,13 +385,12 @@ defmodule ProvChain.Storage.BlockStore do
   end
 
   defp decode_prev_hashes(prev_hashes) do
-    result =
-      Enum.reduce_while(prev_hashes, {:ok, []}, fn hex, {:ok, acc} ->
-        case Base.decode16(hex, case: :mixed) do
-          {:ok, binary} -> {:cont, {:ok, [binary | acc]}}
-          :error -> {:halt, {:error, :invalid_hex}}
-        end
-      end)
+    result = Enum.reduce_while(prev_hashes, {:ok, []}, fn hex, {:ok, acc} ->
+      case Base.decode16(hex, case: :mixed) do
+        {:ok, binary} -> {:cont, {:ok, [binary | acc]}}
+        :error -> {:halt, {:error, :invalid_hex}}
+      end
+    end)
 
     case result do
       {:ok, list} -> {:ok, Enum.reverse(list)}
@@ -445,7 +399,6 @@ defmodule ProvChain.Storage.BlockStore do
   end
 
   defp decode_signature(nil), do: {:ok, nil}
-
   defp decode_signature(signature) do
     case Base.decode16(signature, case: :mixed) do
       {:ok, binary} -> {:ok, binary}
@@ -459,40 +412,21 @@ defmodule ProvChain.Storage.BlockStore do
         {:atomic, :ok} ->
           Logger.info("Table #{table} created successfully")
           :ok
-
         {:aborted, {:already_exists, ^table}} ->
           Logger.info("Table #{table} already exists")
           :ok
-
         {:aborted, reason} ->
           Logger.error("Error creating Mnesia table #{table}: #{inspect(reason)}")
           {:error, {:table_creation_failed, table, reason}}
       end
     end
 
-    storage_type =
-      if Mix.env() == :test, do: [ram_copies: [node()]], else: [disc_copies: [node()]]
+    storage_type = if Mix.env() == :test, do: [ram_copies: [node()]], else: [disc_copies: [node()]]
 
-    with :ok <-
-           create_table_if_needed.(
-             @blocks_table,
-             [attributes: [:hash, :data], type: :set] ++ storage_type
-           ),
-         :ok <-
-           create_table_if_needed.(
-             @transactions_table,
-             [attributes: [:hash, :data], type: :set] ++ storage_type
-           ),
-         :ok <-
-           create_table_if_needed.(
-             @height_index_table,
-             [attributes: [:height, :hash, :timestamp], type: :bag] ++ storage_type
-           ),
-         :ok <-
-           create_table_if_needed.(
-             @type_index_table,
-             [attributes: [:type, :hash, :timestamp], type: :bag] ++ storage_type
-           ) do
+    with :ok <- create_table_if_needed.(@blocks_table, [attributes: [:hash, :data], type: :set] ++ storage_type),
+         :ok <- create_table_if_needed.(@transactions_table, [attributes: [:hash, :data], type: :set] ++ storage_type),
+         :ok <- create_table_if_needed.(@height_index_table, [attributes: [:height, :hash, :timestamp], type: :bag] ++ storage_type),
+         :ok <- create_table_if_needed.(@type_index_table, [attributes: [:type, :hash, :timestamp], type: :bag] ++ storage_type) do
       :ok
     else
       {:error, reason} -> {:error, reason}

@@ -8,9 +8,9 @@ defmodule ProvChain.Test.ProvOData do
 
   alias ProvChain.Crypto.Hash
 
-  # Make hashes string representations instead of binaries
+  # Generate binary hashes instead of hex strings
   defp generate_hash(prefix, id) do
-    Hash.to_hex(Hash.hash("#{prefix}:#{id}"))
+    Hash.hash("#{prefix}:#{id}")
   end
 
   @doc """
@@ -331,7 +331,7 @@ defmodule ProvChain.Test.ProvOData do
         "package_type" => "Tetra Pak",
         "volume" => 1.0,
         "units" => 950,
-        "best_before" => timestamp + 7776000000, # 90 days in milliseconds
+        "best_before" => timestamp + 7_776_000_000, # 90 days in milliseconds
         "batch_number" => "UHT-#{timestamp}",
         "barcode" => "5901234123457"
       },
