@@ -3,6 +3,8 @@ defmodule ProvChain.Utils.SerializationTest do
 
   alias ProvChain.Utils.Serialization
   alias ProvChain.Test.ProvOData
+  alias ProvChain.BlockDag.Block
+  alias ProvChain.Crypto.Signature
 
   describe "encode/1" do
     test "encodes basic data types" do
@@ -13,90 +15,68 @@ defmodule ProvChain.Utils.SerializationTest do
     end
 
     test "encodes maps with deterministic key ordering" do
-      # Create map with keys in random order
       map = %{c: 3, a: 1, b: 2}
       encoded = Serialization.encode(map)
-
-      # Just check that the decoded data has the correct values
-      # rather than testing the exact string format
       decoded = Jason.decode!(encoded)
       assert decoded == %{"a" => 1, "b" => 2, "c" => 3}
-
-      # Also verify that encoding is consistent
       encoded2 = Serialization.encode(map)
       assert encoded == encoded2
     end
 
     test "encodes PROV-O milk collection transaction" do
-      # Get a milk collection transaction with PROV-O structure
       tx = ProvOData.milk_collection_transaction()
-
       encoded = Serialization.encode(tx)
       decoded = Jason.decode!(encoded)
 
-      # Verify essential PROV-O elements are present
       assert decoded["prov:entity"]["type"] == "prov:Entity"
       assert decoded["prov:activity"]["type"] == "prov:Activity"
       assert decoded["prov:agent"]["type"] == "prov:Agent"
 
-      # Verify PROV-O relationships
       assert Map.has_key?(decoded["prov:relations"], "wasGeneratedBy")
       assert Map.has_key?(decoded["prov:relations"], "wasAttributedTo")
       assert Map.has_key?(decoded["prov:relations"], "wasAssociatedWith")
 
-      # Verify domain-specific data
       assert decoded["supply_chain_data"]["event_type"] == "milk_collection"
     end
 
     test "encodes PROV-O supply chain trace" do
-      # Get a complete supply chain trace (collection -> processing -> packaging -> distribution)
       trace = ProvOData.generate_supply_chain_trace()
-
       encoded = Serialization.encode(trace)
       decoded = Jason.decode!(encoded)
 
-      # Verify we have all four stages encoded
       assert length(decoded) == 4
 
-      # Check the connections in the trace
       [collection, processing, packaging, distribution] = decoded
 
-      # Verify processing used the milk batch from collection
       batch_id = collection["prov:entity"]["id"]
       used_relation = processing["prov:relations"]["used"]
       assert used_relation["entity"] == batch_id
 
-      # Verify packaging used the processed milk
       processed_id = processing["prov:entity"]["id"]
       used_relation = packaging["prov:relations"]["used"]
       assert used_relation["entity"] == processed_id
 
-      # Verify distribution used the packaged milk
       package_id = packaging["prov:entity"]["id"]
       used_relation = distribution["prov:relations"]["used"]
       assert used_relation["entity"] == package_id
     end
 
     test "safely handles non-encodable data in PROV-O structure" do
-      # Get a milk collection transaction
       tx = ProvOData.milk_collection_transaction()
+      tx = Map.put(tx, "validator_fn", fn x -> x * 2 end)
 
-      # Add a non-encodable value (a function)
-      tx = Map.put(tx, :validator_fn, fn x -> x * 2 end)
-
-      # Should not raise an error
       result = Serialization.encode(tx)
+      decoded = Jason.decode!(result)
 
-      # Should still contain the essential PROV-O structure
-      assert result =~ "prov:entity"
-      assert result =~ "prov:activity"
-      assert result =~ "prov:agent"
+      assert decoded["prov:entity"]
+      assert decoded["prov:activity"]
+      assert decoded["prov:agent"]
+      assert decoded["validator_fn"] == nil
     end
   end
 
   describe "decode/1" do
     test "decodes valid PROV-O JSON string" do
-      # Get a milk collection transaction
       tx = ProvOData.milk_collection_transaction()
       json = Serialization.encode(tx)
 
@@ -115,7 +95,6 @@ defmodule ProvChain.Utils.SerializationTest do
 
   describe "decode_with_atoms/1" do
     test "decodes PROV-O JSON with atom keys" do
-      # Get a milk batch entity
       entity = ProvOData.milk_batch_entity()
       json = Serialization.encode(entity)
 
@@ -129,25 +108,30 @@ defmodule ProvChain.Utils.SerializationTest do
 
   describe "struct_to_map/1" do
     test "converts struct to serializable map with PROV-O content" do
-      # Create a struct-like map with DateTime
-      timestamp = ~U[2025-01-01 12:00:00Z]
-      struct = %{
-        __struct__: TestStruct,
-        id: "activity:1234",
-        type: "prov:Activity",
-        timestamp: timestamp,
-        attributes: %{
-          "prov:type" => "MilkCollection",
-          "startTime" => timestamp
-        }
+      {_, validator} = Signature.generate_key_pair()
+      prev_hash = :crypto.hash(:sha256, "prev_block_1")
+      struct = %Block{
+        hash: :crypto.hash(:sha256, "block_1"),
+        prev_hashes: [prev_hash],
+        timestamp: 1_744_420_650_662,
+        height: 1,
+        validator: validator,
+        signature: nil,
+        transactions: [%{"test" => "transaction"}],
+        merkle_root: :crypto.hash(:sha256, "merkle_1"),
+        supply_chain_type: "milk_collection",
+        dag_weight: 2,
+        metadata: %{"test" => true}
       }
 
       result = Serialization.struct_to_map(struct)
 
-      assert result[:id] == "activity:1234"
-      assert result[:type] == "prov:Activity"
-      assert result[:timestamp] == DateTime.to_iso8601(timestamp)
-      assert result[:attributes]["startTime"] == DateTime.to_iso8601(timestamp)
+      assert result[:hash] == Base.encode16(struct.hash, case: :upper)
+      assert result[:prev_hashes] == Enum.map(struct.prev_hashes, &Base.encode16(&1, case: :upper))
+      assert result[:timestamp] == struct.timestamp
+      assert result[:height] == struct.height
+      assert result[:supply_chain_type] == "milk_collection"
+      assert result[:metadata] == %{"test" => true}
       refute Map.has_key?(result, :__struct__)
     end
   end
