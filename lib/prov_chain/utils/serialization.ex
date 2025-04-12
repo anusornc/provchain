@@ -15,7 +15,6 @@ defmodule ProvChain.Utils.Serialization do
     :erlang.term_to_binary(sanitized_data)
   end
   def encode(data) when is_list(data) do
-    # ตรวจสอบว่า list มี map ที่มี key "hash" หรือไม่
     if Enum.any?(data, &is_map(&1) and is_map_key(&1, "hash")) do
       sanitized_data = sanitize_for_json(data)
       :erlang.term_to_binary(sanitized_data)
@@ -29,7 +28,6 @@ defmodule ProvChain.Utils.Serialization do
     Jason.encode!(serializable_data)
   end
 
-  # คงส่วนที่เหลือไว้เหมือนเดิม
   @doc """
   Decodes a binary into an Elixir term.
   For transactions, uses binary_to_term to preserve binary hashes.
@@ -68,7 +66,7 @@ defmodule ProvChain.Utils.Serialization do
   # Sanitizes data for JSON encoding
   defp sanitize_for_json(data) when is_map(data) do
     Enum.map(data, fn
-      {"hash", v} -> {"hash", v} # คง binary สำหรับ hash
+      {key, v} when key in ["hash", "validator", "signature", "merkle_root", "prev_hashes"] -> {key, v}
       {k, v} -> {to_string(k), sanitize_for_json(v)}
     end)
     |> Enum.into(%{})
