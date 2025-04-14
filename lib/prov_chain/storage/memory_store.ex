@@ -171,43 +171,19 @@ defmodule ProvChain.Storage.MemoryStore do
     cache_opts = [limit: cache_size, policy: Cachex.Policy.LRU, stats: true]
     cache_opts = if is_integer(ttl) and ttl > 0, do: [{:ttl, ttl} | cache_opts], else: cache_opts
 
-    block_cache_result = Cachex.start_link(@block_cache, cache_opts)
-    tx_cache_result = Cachex.start_link(@tx_cache, cache_opts)
+    # Ensure clean state by clearing existing caches
+    Cachex.clear(@block_cache)
+    Cachex.clear(@tx_cache)
 
-    case {block_cache_result, tx_cache_result} do
-      {{:ok, _}, {:ok, _}} ->
-        Logger.info("Started block and transaction caches with size: #{cache_size}")
-        initialize_ets_table()
-        Logger.info("MemoryStore initialized with Cachex and ETS")
-        {:ok, %{cache_enabled: true}}
+    # Start caches
+    _ = Cachex.start_link(@block_cache, cache_opts)
+    _ = Cachex.start_link(@tx_cache, cache_opts)
 
-      {{:ok, _}, {:error, {:already_started, pid}}} ->
-        Logger.warning("Transaction cache already started with pid #{inspect(pid)}")
-        initialize_ets_table()
-        Logger.info("MemoryStore initialized with Cachex and ETS")
-        {:ok, %{cache_enabled: true}}
+    # Initialize ETS table
+    initialize_ets_table()
 
-      {{:error, {:already_started, pid}}, {:ok, _}} ->
-        Logger.warning("Block cache already started with pid #{inspect(pid)}")
-        initialize_ets_table()
-        Logger.info("MemoryStore initialized with Cachex and ETS")
-        {:ok, %{cache_enabled: true}}
-
-      {{:error, {:already_started, pid1}}, {:error, {:already_started, pid2}}} ->
-        Logger.warning("Block cache already started with pid #{inspect(pid1)}")
-        Logger.warning("Transaction cache already started with pid #{inspect(pid2)}")
-        initialize_ets_table()
-        Logger.info("MemoryStore initialized with Cachex and ETS")
-        {:ok, %{cache_enabled: true}}
-
-      {{:error, reason}, _} ->
-        Logger.error("Failed to initialize MemoryStore: block cache error #{inspect(reason)}")
-        {:stop, {:cache_init_failed, reason}}
-
-      {_, {:error, reason}} ->
-        Logger.error("Failed to initialize MemoryStore: transaction cache error #{inspect(reason)}")
-        {:stop, {:cache_init_failed, reason}}
-    end
+    Logger.info("MemoryStore initialized with Cachex and ETS")
+    {:ok, %{cache_enabled: true}}
   end
 
   @impl true
@@ -239,15 +215,20 @@ defmodule ProvChain.Storage.MemoryStore do
   end
 
   defp is_cache_enabled? do
-    try do
-      case GenServer.call(__MODULE__, :is_cache_enabled?, @default_timeout) do
-        {:ok, bool} when is_boolean(bool) -> bool
-        _ -> false
+    if Process.whereis(__MODULE__) do
+      try do
+        case GenServer.call(__MODULE__, :is_cache_enabled?, @default_timeout) do
+          {:ok, bool} when is_boolean(bool) -> bool
+          _ -> false
+        end
+      catch
+        _ ->
+          Logger.warning("Failed to get cache enabled state. Assuming disabled.")
+          false
       end
-    catch
-      _ ->
-        Logger.warning("Failed to get cache enabled state. Assuming disabled.")
-        false
+    else
+      Logger.warning("MemoryStore process not running. Assuming cache disabled.")
+      false
     end
   end
 
