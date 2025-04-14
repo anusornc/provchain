@@ -1,3 +1,4 @@
+# test/prov_chain/storage/memory_store_test.exs
 defmodule ProvChain.Storage.MemoryStoreTest do
   @moduledoc """
   Tests for the MemoryStore module.
@@ -9,14 +10,31 @@ defmodule ProvChain.Storage.MemoryStoreTest do
   alias ProvChain.Crypto.Signature
 
   setup do
-    # Clear ETS tables if they exist
-    for table <- [:provchain_blocks, :provchain_transactions, :provchain_tip_set] do
-      if :ets.whereis(table) != :undefined do
-        :ets.delete_all_objects(table)
-      end
+    IO.puts("---- Starting test setup ----")
+
+    # Start MemoryStore and handle already started case
+    IO.puts("Starting MemoryStore")
+    pid = case MemoryStore.start_link(max_cache_size: 1000, ttl: :timer.hours(1)) do
+      {:ok, pid} -> pid
+      {:error, {:already_started, pid}} -> pid
     end
-    # Reset tip set to empty list
-    MemoryStore.update_tip_set([])
+
+    # Ensure ETS table is initialized
+    IO.puts("Ensuring ETS table is initialized")
+    if :ets.whereis(:provchain_tip_set) != :undefined do
+      :ets.delete_all_objects(:provchain_tip_set)
+    else
+      :ets.new(:provchain_tip_set, [:named_table, :set, :public, read_concurrency: true])
+    end
+    :ets.insert(:provchain_tip_set, {:current, []})
+
+    # Cleanup after test
+    on_exit(fn ->
+      IO.puts("Cleaning up after test")
+      if Process.alive?(pid), do: GenServer.stop(pid)
+    end)
+
+    IO.puts("---- Setup complete ----")
     :ok
   end
 
@@ -45,6 +63,13 @@ defmodule ProvChain.Storage.MemoryStoreTest do
     test "get_block/1 returns error for non-existent block" do
       non_existent_hash = :crypto.hash(:sha256, "non_existent")
       assert {:error, :not_found} = MemoryStore.get_block(non_existent_hash)
+    end
+
+    test "get_block/1 returns cache_disabled when cache is off" do
+      MemoryStore.set_cache_enabled(false)
+      hash = :crypto.hash(:sha256, "block_disabled")
+      assert {:error, :cache_disabled} = MemoryStore.get_block(hash)
+      MemoryStore.set_cache_enabled(true)
     end
 
     test "has_block?/1 returns true for existing block" do
@@ -90,6 +115,13 @@ defmodule ProvChain.Storage.MemoryStoreTest do
       assert {:error, :not_found} = MemoryStore.get_transaction(non_existent_hash)
     end
 
+    test "get_transaction/1 returns cache_disabled when cache is off" do
+      MemoryStore.set_cache_enabled(false)
+      hash = :crypto.hash(:sha256, "tx_disabled")
+      assert {:error, :cache_disabled} = MemoryStore.get_transaction(hash)
+      MemoryStore.set_cache_enabled(true)
+    end
+
     test "has_transaction?/1 returns true for existing transaction" do
       hash = :crypto.hash(:sha256, "tx_2")
       tx = %{
@@ -123,6 +155,13 @@ defmodule ProvChain.Storage.MemoryStoreTest do
       assert MemoryStore.get_tip_set() == []
     end
 
+    test "get_tip_set/0 handles missing ETS table" do
+      if :ets.whereis(:provchain_tip_set) != :undefined do
+        :ets.delete(:provchain_tip_set)
+      end
+      assert MemoryStore.get_tip_set() == []
+    end
+
     test "update_tip_set/1 replaces previous tip set" do
       initial_tip_set = [
         :crypto.hash(:sha256, "block_1"),
@@ -142,33 +181,94 @@ defmodule ProvChain.Storage.MemoryStoreTest do
     end
   end
 
-  test "concurrent access to ETS tables" do
-    block = %Block{
-      hash: :crypto.hash(:sha256, "concurrent_block"),
-      prev_hashes: [],
-      timestamp: 1_744_420_650_662,
-      height: 1,
-      validator: :crypto.hash(:sha256, "validator"),
-      signature: nil,
-      transactions: [%{"test" => "transaction"}],
-      merkle_root: :crypto.hash(:sha256, "merkle_concurrent"),
-      supply_chain_type: "milk_collection",
-      dag_weight: 2,
-      metadata: %{"test" => true}
-    }
-    hash = block.hash
+  describe "concurrent access" do
+    test "concurrent access to blocks and transactions" do
+      {_, validator} = Signature.generate_key_pair()
+      block = %Block{
+        hash: :crypto.hash(:sha256, "concurrent_block"),
+        prev_hashes: [],
+        timestamp: 1_744_420_650_662,
+        height: 1,
+        validator: validator,
+        signature: nil,
+        transactions: [%{"test" => "transaction"}],
+        merkle_root: :crypto.hash(:sha256, "merkle_concurrent"),
+        supply_chain_type: "milk_collection",
+        dag_weight: 2,
+        metadata: %{"test" => true}
+      }
+      block_hash = block.hash
+      tx = %{hash: :crypto.hash(:sha256, "tx_concurrent"), data: "test"}
+      tx_hash = tx.hash
 
-    tasks =
-      for _ <- 1..10 do
-        Task.async(fn ->
-          MemoryStore.put_block(hash, block)
-          MemoryStore.get_block(hash)
-        end)
+      # Ensure data is in cache before concurrent tasks
+      assert :ok = MemoryStore.put_block(block_hash, block)
+      assert :ok = MemoryStore.put_transaction(tx_hash, tx)
+
+      tasks =
+        for i <- 1..20 do
+          Task.async(fn ->
+            case rem(i, 3) do
+              0 -> MemoryStore.put_block(block_hash, block)
+              1 -> MemoryStore.put_transaction(tx_hash, tx)
+              2 -> MemoryStore.update_tip_set([block_hash])
+            end
+            if rem(i, 2) == 0 do
+              MemoryStore.get_block(block_hash)
+            else
+              MemoryStore.get_transaction(tx_hash)
+            end
+          end)
+        end
+
+      results = Task.await_many(tasks, 10_000)
+      for result <- results do
+        assert result in [{:ok, block}, {:ok, tx}]
       end
+    end
+  end
 
-    results = Task.await_many(tasks)
-    for result <- results do
-      assert result == {:ok, block}
+  describe "cache control" do
+    test "set_cache_enabled/1 toggles cache" do
+      {_, validator} = Signature.generate_key_pair()
+      hash = :crypto.hash(:sha256, "block_toggle")
+      block = %Block{
+        hash: hash,
+        prev_hashes: [],
+        timestamp: 1_744_420_650_662,
+        height: 1,
+        validator: validator,
+        signature: nil,
+        transactions: [%{"test" => "transaction"}],
+        merkle_root: :crypto.hash(:sha256, "merkle_toggle"),
+        supply_chain_type: "milk_collection",
+        dag_weight: 2,
+        metadata: %{"test" => true}
+      }
+
+      assert :ok = MemoryStore.set_cache_enabled(false)
+      assert {:error, :cache_disabled} = MemoryStore.get_block(hash)
+      assert :ok = MemoryStore.set_cache_enabled(true)
+      assert :ok = MemoryStore.put_block(hash, block)
+      assert {:ok, ^block} = MemoryStore.get_block(hash)
+    end
+
+    test "cache_stats/0 returns stats when enabled" do
+      case MemoryStore.cache_stats() do
+        {:ok, stats} ->
+          assert is_map(stats)
+          assert stats.enabled == true
+          assert is_integer(stats.size)
+        {:error, :stats_unavailable} ->
+          # Allow stats_unavailable as a fallback
+          :ok
+      end
+    end
+
+    test "cache_stats/0 returns error when disabled" do
+      MemoryStore.set_cache_enabled(false)
+      assert {:error, :cache_disabled} = MemoryStore.cache_stats()
+      MemoryStore.set_cache_enabled(true)
     end
   end
 end

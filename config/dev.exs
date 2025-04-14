@@ -6,6 +6,12 @@ config :provchain,
   network_port: 4000,
   validator_timeout: 5000
 
+# Configuration of Mnesia
+config :mnesia,
+  dir: "data/dev/mnesia",
+  extra_db_nodes: [],
+  extra_db_nodes_timeout: 5000
+
 config :logger,
   level: :debug,
   backends: [:console]

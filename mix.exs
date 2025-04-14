@@ -36,7 +36,8 @@ defmodule ProvChain.MixProject do
       {:jason, "~> 1.4"},
       {:eddy, "~> 1.0.0"},
 
-      {:telemetry, "~> 1.3"},
+      {:cachex, "~> 4.0"},
+
       {:mox, "~> 1.2"},
 
       # Development and testing
