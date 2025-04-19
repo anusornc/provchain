@@ -10,8 +10,14 @@ config :provchain,
 config :mnesia,
   dir: "data/test/mnesia",
   extra_db_nodes: [],
-  extra_db_nodes_timeout: 5000
+  extra_db_nodes_timeout: 5000,
+  access: :read_write,
+  dump_log_write_threshold: 1000
 
 config :logger,
-  level: :warning,
+  level: :debug,
   backends: [:console]
+
+config :cachex,
+  default_args: [stats: true],
+  stats: true

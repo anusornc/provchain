@@ -36,7 +36,7 @@ defmodule ProvChain.MixProject do
       {:jason, "~> 1.4"},
       {:eddy, "~> 1.0.0"},
 
-      {:cachex, "~> 4.0"},
+      {:cachex, "~> 4.0.4"},
 
       {:mox, "~> 1.2"},
 

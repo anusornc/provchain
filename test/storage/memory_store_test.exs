@@ -11,27 +11,20 @@ defmodule ProvChain.Storage.MemoryStoreTest do
 
   setup do
     IO.puts("---- Starting test setup ----")
+    IO.puts("Ensuring MemoryStore is running")
+    assert Process.whereis(MemoryStore) != nil
 
-    # Start MemoryStore and handle already started case
-    IO.puts("Starting MemoryStore")
-    pid = case MemoryStore.start_link(max_cache_size: 1000, ttl: :timer.hours(1)) do
-      {:ok, pid} -> pid
-      {:error, {:already_started, pid}} -> pid
-    end
-
-    # Ensure ETS table is initialized
-    IO.puts("Ensuring ETS table is initialized")
+    # Clear caches and ETS table
+    IO.puts("Clearing caches and ETS table")
+    MemoryStore.clear_cache()
     if :ets.whereis(:provchain_tip_set) != :undefined do
       :ets.delete_all_objects(:provchain_tip_set)
-    else
-      :ets.new(:provchain_tip_set, [:named_table, :set, :public, read_concurrency: true])
+      :ets.insert(:provchain_tip_set, {:current, []})
     end
-    :ets.insert(:provchain_tip_set, {:current, []})
 
-    # Cleanup after test
     on_exit(fn ->
       IO.puts("Cleaning up after test")
-      if Process.alive?(pid), do: GenServer.stop(pid)
+      MemoryStore.clear_cache()
     end)
 
     IO.puts("---- Setup complete ----")
@@ -41,6 +34,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
   describe "block operations" do
     test "put_block/2 and get_block/1" do
       {_, validator} = Signature.generate_key_pair()
+
       block = %Block{
         hash: :crypto.hash(:sha256, "block_1"),
         prev_hashes: [],
@@ -54,6 +48,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
         dag_weight: 2,
         metadata: %{"test" => true}
       }
+
       hash = block.hash
 
       assert :ok = MemoryStore.put_block(hash, block)
@@ -74,6 +69,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
 
     test "has_block?/1 returns true for existing block" do
       hash = :crypto.hash(:sha256, "block_2")
+
       block = %Block{
         hash: hash,
         prev_hashes: [],
@@ -104,6 +100,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
         hash: :crypto.hash(:sha256, "tx_1"),
         data: "test transaction data"
       }
+
       hash = tx.hash
 
       assert :ok = MemoryStore.put_transaction(hash, tx)
@@ -124,6 +121,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
 
     test "has_transaction?/1 returns true for existing transaction" do
       hash = :crypto.hash(:sha256, "tx_2")
+
       tx = %{
         hash: hash,
         data: "test transaction data"
@@ -159,6 +157,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
       if :ets.whereis(:provchain_tip_set) != :undefined do
         :ets.delete(:provchain_tip_set)
       end
+
       assert MemoryStore.get_tip_set() == []
     end
 
@@ -167,6 +166,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
         :crypto.hash(:sha256, "block_1"),
         :crypto.hash(:sha256, "block_2")
       ]
+
       new_tip_set = [
         :crypto.hash(:sha256, "block_3"),
         :crypto.hash(:sha256, "block_4"),
@@ -184,6 +184,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
   describe "concurrent access" do
     test "concurrent access to blocks and transactions" do
       {_, validator} = Signature.generate_key_pair()
+
       block = %Block{
         hash: :crypto.hash(:sha256, "concurrent_block"),
         prev_hashes: [],
@@ -197,6 +198,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
         dag_weight: 2,
         metadata: %{"test" => true}
       }
+
       block_hash = block.hash
       tx = %{hash: :crypto.hash(:sha256, "tx_concurrent"), data: "test"}
       tx_hash = tx.hash
@@ -213,6 +215,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
               1 -> MemoryStore.put_transaction(tx_hash, tx)
               2 -> MemoryStore.update_tip_set([block_hash])
             end
+
             if rem(i, 2) == 0 do
               MemoryStore.get_block(block_hash)
             else
@@ -222,6 +225,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
         end
 
       results = Task.await_many(tasks, 10_000)
+
       for result <- results do
         assert result in [{:ok, block}, {:ok, tx}]
       end
@@ -232,6 +236,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
     test "set_cache_enabled/1 toggles cache" do
       {_, validator} = Signature.generate_key_pair()
       hash = :crypto.hash(:sha256, "block_toggle")
+
       block = %Block{
         hash: hash,
         prev_hashes: [],
@@ -259,6 +264,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
           assert is_map(stats)
           assert stats.enabled == true
           assert is_integer(stats.size)
+
         {:error, :stats_unavailable} ->
           # Allow stats_unavailable as a fallback
           :ok
