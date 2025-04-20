@@ -28,5 +28,7 @@ provchain-*.tar
 lib/.DS_Store
 lib/prov_chain/.DS_Store
 .DS_Store
-
+#Mnesia
+# Ignore the generated files from the `mix release` command.
+MnesiaCore.*
 
