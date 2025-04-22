@@ -1,4 +1,5 @@
 # test/test_helper.exs
+# Updated: 2025-04-21 to fix Cachex Config: nil issue
 # ------------------------------------------------------------
 # Helper for ProvChain test suite (non-distributed mode):
 # – Uses local node (:nonode@nohost) – no Node.start call
@@ -10,7 +11,7 @@
 ExUnit.start()
 require Logger
 
-# Force load config/test.exs
+# Force load config/test.exs before any application code
 Logger.info("Loading test config before application start")
 Application.load(:provchain)
 config = Config.Reader.read!("config/test.exs", env: :test)

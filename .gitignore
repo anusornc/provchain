@@ -32,3 +32,5 @@ lib/prov_chain/.DS_Store
 # Ignore the generated files from the `mix release` command.
 MnesiaCore.*
 
+.clj-kondo/.cache/v1/lock
+.lsp/.cache/db.transit.json
