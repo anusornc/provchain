@@ -1,23 +1,24 @@
 defmodule ProvChain.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
+  @moduledoc """
+  The ProvChain Application Service.
+
+  The provchain application provides a permissioned blockchain for supply chain tracking.
+  This module defines the application callback required to start the supervision tree.
+  """
 
   use Application
+  require Logger
 
   @impl true
   def start(_type, _args) do
+    Logger.info("Starting MemoryStore in ProvChain.Application")
+
     children = [
-      # Starts a worker by calling: ProvChain.Worker.start_link(arg)
-      # {ProvChain.Worker, arg}
-      {ProvChain.Storage.BlockStore, []},   # Block storage
-      {ProvChain.Storage.MemoryStore, []}   # Memory storage
+      {ProvChain.Storage.BlockStore, []},
+      {ProvChain.Storage.MemoryStore, []}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: ProvChain.Supervisor, max_restarts: 5, max_seconds: 10]
-    # The :one_for_one strategy means that if a child process terminates,
+    opts = [strategy: :one_for_one, name: ProvChain.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end

@@ -1,5 +1,6 @@
 defmodule ProvChain.Storage.BlockStoreTest do
   use ExUnit.Case, async: false
+  require Logger
 
   alias ProvChain.Storage.BlockStore
   alias ProvChain.BlockDag.Block
@@ -11,16 +12,34 @@ defmodule ProvChain.Storage.BlockStoreTest do
     File.rm_rf!(dag_path)
     File.mkdir_p!(dag_path)
 
-    # Ensure a fresh application start (restarts Mnesia and storage)
-    Application.stop(:provchain)
-    {:ok, _} = Application.ensure_all_started(:provchain)
+    # Clean Mnesia directory
+    mnesia_dir = Application.get_env(:mnesia, :dir, "data/test/mnesia") |> to_string()
+    File.rm_rf!(mnesia_dir)
+    File.mkdir_p!(mnesia_dir)
 
-    # If Mnesia is not running, start it
-    if :mnesia.system_info(:is_running) != :yes do
-      :mnesia.start()
+    # Start Mnesia and create schema
+    :mnesia.stop()
+    :ok = :mnesia.delete_schema([node()])
+    :ok = :mnesia.create_schema([node()])
+    :ok = :mnesia.start()
+
+    # Create tables manually
+    tables = [
+      {:blocks, [attributes: [:hash, :block], type: :set]},
+      {:transactions, [attributes: [:hash, :transaction], type: :set]},
+      {:height_index, [attributes: [:height, :hash, :timestamp], type: :bag]},
+      {:type_index, [attributes: [:type, :hash, :timestamp], type: :bag]}
+    ]
+
+    for {table, opts} <- tables do
+      case :mnesia.create_table(table, opts) do
+        {:atomic, :ok} -> Logger.info("Created Mnesia table #{table}")
+        {:aborted, {:already_exists, _}} -> Logger.debug("Mnesia table #{table} already exists")
+        {:aborted, reason} -> flunk("Failed to create Mnesia table #{table}: #{inspect(reason)}")
+      end
     end
 
-    # Wait for schema and tables to be available
+    # Wait for tables to be available
     tables = [
       :schema,
       BlockStore.blocks_table(),
@@ -28,13 +47,16 @@ defmodule ProvChain.Storage.BlockStoreTest do
       BlockStore.height_index_table(),
       BlockStore.type_index_table()
     ]
-    :ok = :mnesia.wait_for_tables(tables, 5_000)
+    case :mnesia.wait_for_tables(tables, 30_000) do
+      :ok -> :ok
+      {:timeout, missing_tables} ->
+        flunk("Mnesia tables not available: #{inspect(missing_tables)}")
+      {:error, reason} ->
+        flunk("Mnesia error: #{inspect(reason)}")
+    end
 
     # Clear data for fresh test
     :ok = BlockStore.clear_tables()
-
-    # Ensure full application teardown (including Mnesia) after each test
-    on_exit(fn -> Application.stop(:provchain) end)
 
     :ok
   end
@@ -52,6 +74,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
           "milk_collection",
           %{"test" => true}
         )
+        |> Map.put(:height, 1) # Ensure height is an integer
 
       assert :ok = BlockStore.put_block(block)
       assert {:ok, fetched} = BlockStore.get_block(block.hash)
@@ -104,8 +127,14 @@ defmodule ProvChain.Storage.BlockStoreTest do
       prev2 = :crypto.hash(:sha256, "p2")
       height = 5
 
-      b1 = %{Block.new([prev1], [%{"a" => 1}], validator, "t1", %{}) | height: height}
-      b2 = %{Block.new([prev2], [%{"b" => 2}], validator, "t2", %{}) | height: height}
+      b1 = %{
+        Block.new([prev1], [%{"a" => 1}], validator, "t1", %{})
+        | height: height
+      }
+      b2 = %{
+        Block.new([prev2], [%{"b" => 2}], validator, "t2", %{})
+        | height: height
+      }
 
       assert :ok = BlockStore.put_block(b1)
       assert :ok = BlockStore.put_block(b2)
@@ -121,9 +150,9 @@ defmodule ProvChain.Storage.BlockStoreTest do
       {:ok, {_, validator}} = Signature.generate_key_pair()
       prev = :crypto.hash(:sha256, "p")
 
-      b1 = Block.new([prev], [%{"x" => 1}], validator, "T1", %{})
-      b2 = Block.new([prev], [%{"y" => 2}], validator, "T1", %{})
-      b3 = Block.new([prev], [%{"z" => 3}], validator, "T2", %{})
+      b1 = Block.new([prev], [%{"x" => 1}], validator, "T1", %{}) |> Map.put(:height, 1)
+      b2 = Block.new([prev], [%{"y" => 2}], validator, "T1", %{}) |> Map.put(:height, 1)
+      b3 = Block.new([prev], [%{"z" => 3}], validator, "T2", %{}) |> Map.put(:height, 1)
 
       assert :ok = BlockStore.put_block(b1)
       assert :ok = BlockStore.put_block(b2)
@@ -144,7 +173,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
     test "concurrent block and transaction operations" do
       {:ok, {_, validator}} = Signature.generate_key_pair()
       prev = :crypto.hash(:sha256, "p_con")
-      block = Block.new([prev], [%{"k" => "v"}], validator, "TY", %{})
+      block = Block.new([prev], [%{"k" => "v"}], validator, "TY", %{}) |> Map.put(:height, 1)
       tx = %{"hash" => :crypto.hash(:sha256, "tx_con"), "type" => "TY", "data" => "D"}
 
       tasks = for i <- 1..10 do

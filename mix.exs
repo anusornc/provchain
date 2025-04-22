@@ -10,7 +10,8 @@ defmodule ProvChain.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      aliases: aliases()
+      aliases: aliases(),
+      test_config_path: "config/test.exs",
     ]
   end
 

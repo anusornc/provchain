@@ -10,6 +10,15 @@
 ExUnit.start()
 require Logger
 
+# Force load config/test.exs
+Logger.info("Loading test config before application start")
+Application.load(:provchain)
+config = Config.Reader.read!("config/test.exs", env: :test)
+Enum.each(config, fn {app, opts} -> Application.put_all_env([{app, opts}]) end)
+
+# Log to confirm config loading
+Logger.info("Test config loaded: Cachex default_args: #{inspect(Application.get_env(:cachex, :default_args))}")
+
 # 1) Non-distributed: no Node.start/2 call -> node() remains :nonode@nohost
 Logger.debug("Running tests on node #{inspect(node())} (nonode@nohost)")
 

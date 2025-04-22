@@ -1,3 +1,4 @@
+# config/test.exs
 import Config
 
 config :provchain,
@@ -21,3 +22,9 @@ config :logger,
 config :cachex,
   default_args: [stats: true],
   stats: true
+
+# Require Logger for macro usage
+require Logger
+
+# Log to confirm config loading
+Logger.info("Loaded test config with Cachex stats: #{inspect(Application.get_env(:cachex, :default_args))}")

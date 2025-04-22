@@ -1,4 +1,3 @@
-# test/prov_chain/storage/memory_store_test.exs
 defmodule ProvChain.Storage.MemoryStoreTest do
   @moduledoc """
   Tests for the MemoryStore module.
@@ -11,8 +10,14 @@ defmodule ProvChain.Storage.MemoryStoreTest do
 
   setup do
     IO.puts("---- Starting test setup ----")
-    IO.puts("Ensuring MemoryStore is running")
-    assert Process.whereis(MemoryStore) != nil
+    IO.puts("Ensuring MemoryStore is started")
+
+    # Start MemoryStore if not already started
+    case MemoryStore.start_link([]) do
+      {:ok, _pid} -> :ok
+      {:error, {:already_started, _pid}} -> :ok
+      {:error, reason} -> flunk("Failed to start MemoryStore: #{inspect(reason)}")
+    end
 
     # Clear caches and ETS table
     IO.puts("Clearing caches and ETS table")

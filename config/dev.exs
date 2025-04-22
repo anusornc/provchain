@@ -15,3 +15,7 @@ config :mnesia,
 config :logger,
   level: :debug,
   backends: [:console]
+
+config :cachex,
+  default_args: [stats: true],
+  stats: true
