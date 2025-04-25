@@ -10,7 +10,10 @@ config :provchain,
 config :mnesia,
   dir: "data/dev/mnesia",
   extra_db_nodes: [],
-  extra_db_nodes_timeout: 5000
+  extra_db_nodes_timeout: 5000,
+  dump_log_time_threshold: 30000,  # บันทึกลงดิสก์ทุก 30 วินาที
+  dump_log_write_threshold: 10000, # บันทึกหลังเขียนข้อมูล 10,000 รายการ
+  auto_repair: true                # พยายามซ่อมแซมอัตโนมัติ
 
 config :logger,
   level: :debug,

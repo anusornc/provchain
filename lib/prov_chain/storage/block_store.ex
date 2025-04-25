@@ -186,24 +186,59 @@ defmodule ProvChain.Storage.BlockStore do
   end
 
   defp setup_mnesia do
-    if Mix.env() in [:dev, :test] do
-      dir = Application.fetch_env!(:mnesia, :dir)
-      File.rm_rf!(dir)
-      File.mkdir_p!(dir)
-      :application.set_env(:mnesia, :dir, to_charlist(dir))
+    env = Mix.env()
+
+    # กำหนด directory สำหรับ Mnesia
+    dir = Application.fetch_env!(:mnesia, :dir)
+    File.mkdir_p!(dir)
+    :application.set_env(:mnesia, :dir, to_charlist(dir))
+
+    case env do
+      :test ->
+        reset_mnesia_for_test(dir)
+
+      :dev ->
+        ensure_mnesia_schema_in_dev(dir)
+
+      _ ->
+        Logger.warning("Unsupported environment: #{env}")
+    end
+
+    # เริ่มต้น Mnesia และจัดการผลลัพธ์
+    handle_mnesia_start()
+  end
+
+  # ฟังก์ชันสำหรับรีเซ็ต Mnesia ในโหมดทดสอบ
+  defp reset_mnesia_for_test(dir) do
+    File.rm_rf!(dir)
+    File.mkdir_p!(dir)
+    :mnesia.stop()
+    _ = :mnesia.delete_schema([node()])
+    :mnesia.create_schema([node()])
+  end
+
+  # ฟังก์ชันสำหรับตรวจสอบและสร้าง schema ในโหมดพัฒนา
+  defp ensure_mnesia_schema_in_dev(dir) do
+    unless File.exists?(Path.join(dir, "schema.DAT")) do
+      Logger.info("Creating new Mnesia schema in dev mode")
       :mnesia.stop()
       _ = :mnesia.delete_schema([node()])
       :mnesia.create_schema([node()])
     end
+  end
 
+  # ฟังก์ชันสำหรับจัดการการเริ่มต้น Mnesia
+  defp handle_mnesia_start() do
     case :mnesia.start() do
       :ok -> :ok
       {:error, {:already_started, _}} -> :ok
-      err -> Logger.error("Mnesia failed to start: #{inspect(err)}"); err
+      err ->
+        Logger.error("Mnesia failed to start: #{inspect(err)}")
+        err
     end
   end
 
-  defp create_tables do
+  def create_tables do
     storage = if Mix.env() == :test, do: [ram_copies: [node()]], else: [disc_copies: [node()]]
     make = fn table, opts ->
       case :mnesia.create_table(table, opts ++ storage) do
