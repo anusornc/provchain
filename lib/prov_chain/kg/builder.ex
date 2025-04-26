@@ -16,7 +16,7 @@ defmodule ProvChain.KG.Builder do
 
   @prefixes %{
     prov: ProvChain.Ontology.NS.PROV,
-    rdf:  RDF.NS.RDF
+    rdf: RDF.NS.RDF
   }
 
   @doc "Return the namespace prefixes map."
@@ -26,9 +26,9 @@ defmodule ProvChain.KG.Builder do
   @doc "Build an RDF.Graph from a PROV-O transaction map."
   @spec build_graph(map()) :: RDF.Graph.t()
   def build_graph(%{
-        "prov:entity"    => entity,
-        "prov:activity"  => activity,
-        "prov:agent"     => agent,
+        "prov:entity" => entity,
+        "prov:activity" => activity,
+        "prov:agent" => agent,
         "prov:relations" => relations
       }) do
     Graph.new([], prefixes: @prefixes)
@@ -82,8 +82,9 @@ defmodule ProvChain.KG.Builder do
       case String.split(k, ":", parts: 2) do
         [pfx, local] ->
           pred = ~i<#{pfx}:#{local}>
-          obj  = RDF.literal(v)
+          obj = RDF.literal(v)
           Graph.add(acc, {subj, pred, obj})
+
         _ ->
           acc
       end

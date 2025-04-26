@@ -30,7 +30,8 @@ mnesia_dir = to_charlist(mnesia_dir_string)
 
 # Start required apps
 {:ok, _} = Application.ensure_all_started(:mnesia)
-{:ok, _} = Application.ensure_all_started(:provchain) # เริ่ม MemoryStore, application.ex ข้าม BlockStore และ KG.Store
+# เริ่ม MemoryStore, application.ex ข้าม BlockStore และ KG.Store
+{:ok, _} = Application.ensure_all_started(:provchain)
 
 # Cleanup after suite
 ExUnit.after_suite(fn _ ->

@@ -14,7 +14,7 @@ defmodule ProvChain.KG.BuilderTest do
   """
 
   test "build_graph/1 returns a graph containing the entity as prov:Entity" do
-    tx    = ProvOData.milk_collection_transaction()
+    tx = ProvOData.milk_collection_transaction()
     graph = Builder.build_graph(tx)
 
     # Run the SPARQL query against the in-memory graph

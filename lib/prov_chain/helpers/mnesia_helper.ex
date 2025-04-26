@@ -1,4 +1,16 @@
 defmodule ProvChain.Helpers.MnesiaHelper do
+  @moduledoc """
+  Helper utilities for Mnesia database management in ProvChain.
+
+  This module provides functions for safely managing the Mnesia database:
+  - Safely shutting down Mnesia to prevent data corruption
+  - Checking schema integrity and repairing when necessary
+  - Creating backups before schema modifications
+  - Recovery mechanisms for damaged schema
+
+  These utilities ensure data durability and system robustness when using
+  Mnesia for persistent storage.
+  """
   require Logger
 
   @doc """

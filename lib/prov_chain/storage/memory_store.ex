@@ -1,4 +1,19 @@
 defmodule ProvChain.Storage.MemoryStore do
+  @moduledoc """
+  In-memory storage system for ProvChain blocks and transactions using Cachex.
+
+  This module provides a GenServer-based caching mechanism for blockchain data 
+  with the following capabilities:
+  - Fast in-memory storage of blocks and transactions using Cachex
+  - ETS-based tip set management for blockchain head tracking
+  - Cache statistics and diagnostics
+  - Runtime cache enablement/disablement
+  - Persistence and retrieval of chain state
+
+  Cache configuration including size limits and TTL (time-to-live) can be specified 
+  at startup. The module implements proper lifecycle management including cleanup
+  on termination.
+  """
   use GenServer
   require Logger
   import Cachex.Spec
@@ -22,7 +37,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Stores a block in the cache under the given hash.
   """
   def put_block(hash, block) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.put(@block_cache, hash, block) do
         {:ok, _} ->
           :ok
@@ -41,7 +56,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Returns `{:ok, block}` or `{:error, :not_found}`.
   """
   def get_block(hash) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.get(@block_cache, hash) do
         {:ok, nil} ->
           {:error, :not_found}
@@ -62,7 +77,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Stores a transaction in the cache under the given hash.
   """
   def put_transaction(hash, tx) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.put(@tx_cache, hash, tx) do
         {:ok, _} ->
           :ok
@@ -81,7 +96,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Returns `{:ok, tx}` or `{:error, :not_found}`.
   """
   def get_transaction(hash) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.get(@tx_cache, hash) do
         {:ok, nil} ->
           {:error, :not_found}
@@ -134,7 +149,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Checks if a block exists in the cache.
   """
   def has_block?(hash) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.exists?(@block_cache, hash) do
         {:ok, ex} ->
           ex
@@ -155,7 +170,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Checks if a transaction exists in the cache.
   """
   def has_transaction?(hash) when is_binary(hash) do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case Cachex.exists?(@tx_cache, hash) do
         {:ok, ex} ->
           ex
@@ -183,7 +198,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Returns cache statistics when enabled, or `{:error, :cache_disabled}`.
   """
   def cache_stats do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       case {Cachex.stats(@block_cache), Cachex.stats(@tx_cache)} do
         {{:ok, b}, {:ok, t}} ->
           hits = (b[:hits] || 0) + (t[:hits] || 0)
@@ -220,7 +235,7 @@ defmodule ProvChain.Storage.MemoryStore do
   Clears both block and transaction caches.
   """
   def clear_cache do
-    if is_cache_enabled?() do
+    if cache_enabled?() do
       with {:ok, _} <- Cachex.clear(@block_cache),
            {:ok, _} <- Cachex.clear(@tx_cache) do
         Logger.info("Block and transaction caches cleared")
@@ -325,7 +340,7 @@ defmodule ProvChain.Storage.MemoryStore do
   end
 
   @impl true
-  def handle_call(:is_cache_enabled?, _from, state) do
+  def handle_call(:cache_enabled?, _from, state) do
     {:reply, state.cache_enabled, state}
   end
 
@@ -339,10 +354,10 @@ defmodule ProvChain.Storage.MemoryStore do
 
   # Private helpers
 
-  defp is_cache_enabled? do
+  defp cache_enabled? do
     if Process.whereis(__MODULE__) do
       try do
-        case GenServer.call(__MODULE__, :is_cache_enabled?, @default_timeout) do
+        case GenServer.call(__MODULE__, :cache_enabled?, @default_timeout) do
           bool when is_boolean(bool) -> bool
           _ -> false
         end

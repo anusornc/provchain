@@ -434,7 +434,7 @@ defmodule ProvChain.Test.ProvOData do
         "prov:type" => "Distribution",
         "prov:startTime" => timestamp,
         # 4 hours for delivery
-        "prov:endTime" => timestamp + 14400,
+        "prov:endTime" => timestamp + 14_400,
         "route" => "Route-45",
         "cold_chain_maintained" => true
       },

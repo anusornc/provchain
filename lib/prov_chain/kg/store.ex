@@ -55,9 +55,10 @@ defmodule ProvChain.KG.Store do
 
   defp rebuild_graph do
     # read all transaction records from Mnesia
-    {:atomic, records} = :mnesia.transaction(fn ->
-      :mnesia.match_object({:transactions, :_, :_})
-    end)
+    {:atomic, records} =
+      :mnesia.transaction(fn ->
+        :mnesia.match_object({:transactions, :_, :_})
+      end)
 
     # Extract and decode each transaction map
     tx_list =

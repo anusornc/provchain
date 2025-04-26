@@ -20,6 +20,7 @@ defmodule ProvChain.KG.StartupRebuildTest do
       case Process.whereis(name) do
         pid when is_pid(pid) ->
           Logger.debug("Stopping #{name}")
+
           try do
             GenServer.stop(name, :normal, 5000)
             Logger.debug("Successfully stopped #{name}")
@@ -28,6 +29,7 @@ defmodule ProvChain.KG.StartupRebuildTest do
               Logger.debug("Failed to stop #{name}: #{inspect(reason)}")
               :ok
           end
+
         _ ->
           Logger.debug("#{name} not running")
           :ok
@@ -49,10 +51,27 @@ defmodule ProvChain.KG.StartupRebuildTest do
 
     # Create BlockStore tables
     storage = [ram_copies: [node()]]
-    :mnesia.create_table(BlockStore.blocks_table(), [attributes: [:hash, :data], type: :set] ++ storage)
-    :mnesia.create_table(BlockStore.transactions_table(), [attributes: [:hash, :data], type: :set] ++ storage)
-    :mnesia.create_table(BlockStore.height_index_table(), [attributes: [:height, :hash, :timestamp], type: :bag] ++ storage)
-    :mnesia.create_table(BlockStore.type_index_table(), [attributes: [:type, :hash, :timestamp], type: :bag] ++ storage)
+
+    :mnesia.create_table(
+      BlockStore.blocks_table(),
+      [attributes: [:hash, :data], type: :set] ++ storage
+    )
+
+    :mnesia.create_table(
+      BlockStore.transactions_table(),
+      [attributes: [:hash, :data], type: :set] ++ storage
+    )
+
+    :mnesia.create_table(
+      BlockStore.height_index_table(),
+      [attributes: [:height, :hash, :timestamp], type: :bag] ++ storage
+    )
+
+    :mnesia.create_table(
+      BlockStore.type_index_table(),
+      [attributes: [:type, :hash, :timestamp], type: :bag] ++ storage
+    )
+
     :mnesia.wait_for_tables(
       [
         BlockStore.blocks_table(),
@@ -68,6 +87,7 @@ defmodule ProvChain.KG.StartupRebuildTest do
 
     # Write sample transaction
     tx = ProvOData.milk_collection_transaction()
+
     :mnesia.transaction(fn ->
       :mnesia.write({BlockStore.transactions_table(), tx["hash"], :erlang.term_to_binary(tx)})
     end)

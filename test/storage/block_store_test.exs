@@ -12,6 +12,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
       case Process.whereis(name) do
         pid when is_pid(pid) ->
           Logger.debug("Stopping #{name}")
+
           try do
             GenServer.stop(name, :normal, 5000)
             Logger.debug("Successfully stopped #{name}")
@@ -20,6 +21,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
               Logger.debug("Failed to stop #{name}: #{inspect(reason)}")
               :ok
           end
+
         _ ->
           Logger.debug("#{name} not running")
           :ok
@@ -46,6 +48,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
 
     # Create tables
     storage = [ram_copies: [node()]]
+
     tables = [
       {BlockStore.blocks_table(), [attributes: [:hash, :data], type: :set]},
       {BlockStore.transactions_table(), [attributes: [:hash, :data], type: :set]},
@@ -71,9 +74,14 @@ defmodule ProvChain.Storage.BlockStoreTest do
     ]
 
     case :mnesia.wait_for_tables(tables, 30_000) do
-      :ok -> :ok
-      {:timeout, missing_tables} -> flunk("Mnesia tables not available: #{inspect(missing_tables)}")
-      {:error, reason} -> flunk("Mnesia error: #{inspect(reason)}")
+      :ok ->
+        :ok
+
+      {:timeout, missing_tables} ->
+        flunk("Mnesia tables not available: #{inspect(missing_tables)}")
+
+      {:error, reason} ->
+        flunk("Mnesia error: #{inspect(reason)}")
     end
 
     # Start BlockStore
@@ -219,6 +227,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
         end
 
       results = Task.await_many(tasks, 10_000)
+
       assert Enum.all?(results, fn
                :ok -> true
                {:ok, _} -> true

@@ -333,7 +333,6 @@ defmodule ProvChain.BlockDag.Transaction do
   def to_string(transaction) do
     transaction
     |> Map.drop(["hash", "signature", "signer"])
-    |> Enum.map(fn {key, value} -> "#{key}: #{inspect(value)}" end)
-    |> Enum.join("\n")
+    |> Enum.map_join("\n", fn {key, value} -> "#{key}: #{inspect(value)}" end)
   end
 end

@@ -6,7 +6,8 @@ defmodule ProvChain.KG.Persistence do
   @spec save(RDF.Graph.t()) :: :ok | {:error, term()}
   def save(graph) do
     File.mkdir_p!("data")
-    RDF.Turtle.write_file(graph, @ttl_path)   # write Turtle file :contentReference[oaicite:2]{index=2}
+    # write Turtle file :contentReference[oaicite:2]{index=2}
+    RDF.Turtle.write_file(graph, @ttl_path)
   end
 
   @spec load() :: {:ok, RDF.Graph.t()} | {:error, term()}

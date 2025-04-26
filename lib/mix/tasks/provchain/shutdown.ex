@@ -1,5 +1,12 @@
 # ใน lib/mix/tasks/provchain/shutdown.ex
 defmodule Mix.Tasks.Provchain.Shutdown do
+  @moduledoc """
+  Mix task for safely shutting down the Mnesia database.
+
+  This task ensures proper shutdown of Mnesia to prevent data corruption,
+  allowing for graceful termination of the application's persistent storage.
+  Usage: `mix provchain.shutdown`
+  """
   use Mix.Task
 
   @shortdoc "Safely shutdown Mnesia"

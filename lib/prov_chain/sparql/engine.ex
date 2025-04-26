@@ -12,15 +12,19 @@ defmodule ProvChain.SPARQL.Engine do
   alias SPARQL.Query.Result
 
   @doc "Executes a minimal SPARQL SELECT query, returning all `?s a prov:Entity` subjects."
-  @spec query(String.t() | SPARQL.Query.t(), RDF.Graph.t()) :: {:ok, %SPARQL.Query.Result{variables: [String.t()], results: [%{String.t() => any()}]}}
+  @spec query(String.t() | SPARQL.Query.t(), RDF.Graph.t()) ::
+          {:ok, %SPARQL.Query.Result{variables: [String.t()], results: [%{String.t() => any()}]}}
   def query(query_string, %Graph{} = graph) when is_binary(query_string) do
-    type_pred  = ~I<rdf:type>
+    type_pred = ~I<rdf:type>
     entity_obj = ~I<prov:Entity>
 
     results =
       graph
       |> Graph.triples()
-      |> Enum.filter(fn {_, ^type_pred, ^entity_obj} -> true; _ -> false end)
+      |> Enum.filter(fn
+        {_, ^type_pred, ^entity_obj} -> true
+        _ -> false
+      end)
       |> Enum.map(fn {s, _, _} -> %{"s" => s} end)
 
     {:ok, %Result{variables: ["s"], results: results}}

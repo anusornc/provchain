@@ -1,4 +1,13 @@
 defmodule ProvChain.Application do
+  @moduledoc """
+  Main application module for ProvChain that manages the application lifecycle.
+
+  This module is responsible for:
+  - Starting and supervising the application components
+  - Ensuring Mnesia database is properly initialized
+  - Handling application shutdown
+  - Managing application state during testing vs production environments
+  """
   use Application
   require Logger
 
@@ -29,9 +38,11 @@ defmodule ProvChain.Application do
         Logger.info("Stopping Mnesia safely")
         :mnesia.stop()
         Process.sleep(1000)
+
       _ ->
         :ok
     end
+
     :ok
   end
 
@@ -44,9 +55,11 @@ defmodule ProvChain.Application do
       :ok ->
         Logger.info("Mnesia started successfully")
         ProvChain.Helpers.MnesiaHelper.check_and_repair()
+
       {:error, {:already_started, _}} ->
         Logger.info("Mnesia already running")
         ProvChain.Helpers.MnesiaHelper.check_and_repair()
+
       {:error, reason} ->
         Logger.error("Failed to start Mnesia: #{inspect(reason)}")
         Logger.warning("Attempting to recreate schema")
