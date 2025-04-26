@@ -25,33 +25,33 @@ defmodule ProvChain.BlockDag.Block do
   @type transaction_type :: map()
 
   @type t :: %__MODULE__{
-    hash: hash_type() | nil,
-    prev_hashes: list(hash_type()),
-    timestamp: non_neg_integer(),
-    height: non_neg_integer(),
-    validator: binary(),
-    signature: binary() | nil,
-    transactions: list(transaction_type()),
-    merkle_root: binary(),
-    supply_chain_type: String.t(),
-    dag_weight: non_neg_integer(),
-    metadata: map()
-  }
+          hash: hash_type() | nil,
+          prev_hashes: list(hash_type()),
+          timestamp: non_neg_integer(),
+          height: non_neg_integer(),
+          validator: binary(),
+          signature: binary() | nil,
+          transactions: list(transaction_type()),
+          merkle_root: binary(),
+          supply_chain_type: String.t(),
+          dag_weight: non_neg_integer(),
+          metadata: map()
+        }
 
   @doc """
   Creates a new block with the given parameters.
   """
   @spec new(
-    list(hash_type()),
-    list(transaction_type()),
-    binary(),
-    String.t(),
-    map()
-  ) :: t()
+          list(hash_type()),
+          list(transaction_type()),
+          binary(),
+          String.t(),
+          map()
+        ) :: t()
   def new(prev_hashes, transactions, validator, supply_chain_type, metadata \\ %{})
       when is_list(prev_hashes) and is_list(transactions) and
-           is_binary(validator) and is_binary(supply_chain_type) and
-           is_map(metadata) do
+             is_binary(validator) and is_binary(supply_chain_type) and
+             is_map(metadata) do
     timestamp = :os.system_time(:millisecond)
     height = calculate_height(prev_hashes)
     dag_weight = calculate_weight(prev_hashes, height)
@@ -84,6 +84,7 @@ defmodule ProvChain.BlockDag.Block do
       {:ok, %{block | signature: signature}}
     end
   end
+
   def sign(_, _), do: {:error, :invalid_input}
 
   @doc """
@@ -94,6 +95,7 @@ defmodule ProvChain.BlockDag.Block do
       when is_binary(hash) and is_binary(signature) and is_binary(validator) do
     Signature.verify(hash, signature, validator)
   end
+
   def verify_signature(_), do: false
 
   @doc """
@@ -107,7 +109,8 @@ defmodule ProvChain.BlockDag.Block do
   Calculates the DAG weight based on the PHANTOM algorithm adapted for dairy chain.
   """
   @spec calculate_weight(list(hash_type()), non_neg_integer()) :: non_neg_integer()
-  def calculate_weight(prev_hashes, height) when is_list(prev_hashes) and is_integer(height) and height >= 0 do
+  def calculate_weight(prev_hashes, height)
+      when is_list(prev_hashes) and is_integer(height) and height >= 0 do
     length(prev_hashes) + height
   end
 
@@ -118,13 +121,16 @@ defmodule ProvChain.BlockDag.Block do
   def calculate_merkle_root([]) do
     <<0::256>>
   end
+
   def calculate_merkle_root(transactions) when is_list(transactions) do
-    transaction_hashes = Enum.map(transactions, fn tx ->
-      case tx do
-        %{hash: hash} when is_binary(hash) -> hash
-        _ -> Hash.hash(tx)
-      end
-    end)
+    transaction_hashes =
+      Enum.map(transactions, fn tx ->
+        case tx do
+          %{hash: hash} when is_binary(hash) -> hash
+          _ -> Hash.hash(tx)
+        end
+      end)
+
     Hash.merkle_root(transaction_hashes)
   end
 
@@ -143,6 +149,7 @@ defmodule ProvChain.BlockDag.Block do
       dag_weight: block.dag_weight,
       metadata: block.metadata
     }
+
     try do
       serialized = ProvChain.Utils.Serialization.encode(map_for_hash)
       Hash.hash(serialized)

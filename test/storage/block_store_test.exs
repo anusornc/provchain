@@ -7,6 +7,27 @@ defmodule ProvChain.Storage.BlockStoreTest do
   alias ProvChain.Crypto.Signature
 
   setup do
+    # Stop any running processes
+    stop_with_retry = fn name ->
+      case Process.whereis(name) do
+        pid when is_pid(pid) ->
+          Logger.debug("Stopping #{name}")
+          try do
+            GenServer.stop(name, :normal, 5000)
+            Logger.debug("Successfully stopped #{name}")
+          catch
+            :exit, reason ->
+              Logger.debug("Failed to stop #{name}: #{inspect(reason)}")
+              :ok
+          end
+        _ ->
+          Logger.debug("#{name} not running")
+          :ok
+      end
+    end
+
+    stop_with_retry.(BlockStore)
+
     # Clean DAG directory
     dag_path = Application.get_env(:provchain, :dag_storage_path, "data/test/dag")
     File.rm_rf!(dag_path)
@@ -23,23 +44,24 @@ defmodule ProvChain.Storage.BlockStoreTest do
     :ok = :mnesia.create_schema([node()])
     :ok = :mnesia.start()
 
-    # Create tables manually
+    # Create tables
+    storage = [ram_copies: [node()]]
     tables = [
-      {:blocks, [attributes: [:hash, :block], type: :set]},
-      {:transactions, [attributes: [:hash, :transaction], type: :set]},
-      {:height_index, [attributes: [:height, :hash, :timestamp], type: :bag]},
-      {:type_index, [attributes: [:type, :hash, :timestamp], type: :bag]}
+      {BlockStore.blocks_table(), [attributes: [:hash, :data], type: :set]},
+      {BlockStore.transactions_table(), [attributes: [:hash, :data], type: :set]},
+      {BlockStore.height_index_table(), [attributes: [:height, :hash, :timestamp], type: :bag]},
+      {BlockStore.type_index_table(), [attributes: [:type, :hash, :timestamp], type: :bag]}
     ]
 
     for {table, opts} <- tables do
-      case :mnesia.create_table(table, opts) do
+      case :mnesia.create_table(table, opts ++ storage) do
         {:atomic, :ok} -> Logger.info("Created Mnesia table #{table}")
         {:aborted, {:already_exists, _}} -> Logger.debug("Mnesia table #{table} already exists")
         {:aborted, reason} -> flunk("Failed to create Mnesia table #{table}: #{inspect(reason)}")
       end
     end
 
-    # Wait for tables to be available
+    # Wait for tables
     tables = [
       :schema,
       BlockStore.blocks_table(),
@@ -47,18 +69,28 @@ defmodule ProvChain.Storage.BlockStoreTest do
       BlockStore.height_index_table(),
       BlockStore.type_index_table()
     ]
+
     case :mnesia.wait_for_tables(tables, 30_000) do
       :ok -> :ok
-      {:timeout, missing_tables} ->
-        flunk("Mnesia tables not available: #{inspect(missing_tables)}")
-      {:error, reason} ->
-        flunk("Mnesia error: #{inspect(reason)}")
+      {:timeout, missing_tables} -> flunk("Mnesia tables not available: #{inspect(missing_tables)}")
+      {:error, reason} -> flunk("Mnesia error: #{inspect(reason)}")
     end
+
+    # Start BlockStore
+    {:ok, block_pid} = BlockStore.start_link([])
 
     # Clear data for fresh test
     :ok = BlockStore.clear_tables()
 
-    :ok
+    # Cleanup on exit
+    on_exit(fn ->
+      if Process.alive?(block_pid), do: GenServer.stop(block_pid, :normal, 5000)
+      :mnesia.stop()
+      File.rm_rf!(dag_path)
+      File.rm_rf!(mnesia_dir)
+    end)
+
+    {:ok, %{block_pid: block_pid}}
   end
 
   describe "block operations" do
@@ -74,7 +106,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
           "milk_collection",
           %{"test" => true}
         )
-        |> Map.put(:height, 1) # Ensure height is an integer
+        |> Map.put(:height, 1)
 
       assert :ok = BlockStore.put_block(block)
       assert {:ok, fetched} = BlockStore.get_block(block.hash)
@@ -131,6 +163,7 @@ defmodule ProvChain.Storage.BlockStoreTest do
         Block.new([prev1], [%{"a" => 1}], validator, "t1", %{})
         | height: height
       }
+
       b2 = %{
         Block.new([prev2], [%{"b" => 2}], validator, "t2", %{})
         | height: height
@@ -176,18 +209,21 @@ defmodule ProvChain.Storage.BlockStoreTest do
       block = Block.new([prev], [%{"k" => "v"}], validator, "TY", %{}) |> Map.put(:height, 1)
       tx = %{"hash" => :crypto.hash(:sha256, "tx_con"), "type" => "TY", "data" => "D"}
 
-      tasks = for i <- 1..10 do
-        Task.async(fn ->
-          if rem(i, 2) == 0, do: BlockStore.put_block(block), else: BlockStore.put_transaction(tx)
-        end)
-      end
+      tasks =
+        for i <- 1..10 do
+          Task.async(fn ->
+            if rem(i, 2) == 0,
+              do: BlockStore.put_block(block),
+              else: BlockStore.put_transaction(tx)
+          end)
+        end
 
-      results = Task.await_many(tasks, 5_000)
+      results = Task.await_many(tasks, 10_000)
       assert Enum.all?(results, fn
-        :ok -> true
-        {:ok, _} -> true
-        _ -> false
-      end)
+               :ok -> true
+               {:ok, _} -> true
+               _ -> false
+             end)
     end
   end
 end

@@ -11,7 +11,8 @@ defmodule ProvChain.Crypto.HashTest do
       hash2 = Hash.hash(data)
 
       assert hash1 == hash2
-      assert byte_size(hash1) == 32 # SHA-256 is 32 bytes (256 bits)
+      # SHA-256 is 32 bytes (256 bits)
+      assert byte_size(hash1) == 32
     end
 
     test "produces different hashes for different inputs" do
@@ -68,7 +69,8 @@ defmodule ProvChain.Crypto.HashTest do
 
       # Manual calculation for verification (with duplication)
       combined1 = Hash.hash(hash1 <> hash2)
-      combined2 = Hash.hash(hash3 <> hash3) # Last one duplicated
+      # Last one duplicated
+      combined2 = Hash.hash(hash3 <> hash3)
       expected_root = Hash.hash(combined1 <> combined2)
 
       root = Hash.merkle_root([hash1, hash2, hash3])
@@ -95,7 +97,8 @@ defmodule ProvChain.Crypto.HashTest do
       original_hash = Hash.hash("test data")
 
       hex = Hash.to_hex(original_hash)
-      assert String.length(hex) == 64 # 32 bytes = 64 hex chars
+      # 32 bytes = 64 hex chars
+      assert String.length(hex) == 64
 
       # Should only contain hex characters
       assert hex =~ ~r/^[0-9a-f]+$/

@@ -30,10 +30,12 @@ defmodule ProvChain.Helpers.MnesiaHelper do
           {:atomic, :ok} ->
             Logger.info("Mnesia schema ทำงานได้ปกติ")
             :ok
+
           {:aborted, reason} ->
             Logger.error("Mnesia schema เสียหาย: #{inspect(reason)}")
             recover_schema()
         end
+
       _ ->
         Logger.warning("Mnesia ไม่ได้ทำงาน จะเริ่มต้นใหม่...")
         :mnesia.start()

@@ -32,6 +32,7 @@ defmodule ProvChain.Crypto.Signature do
       {:error, reason} -> {:error, reason}
     end
   end
+
   def derive_public_key(_), do: {:error, :invalid_input}
 
   @doc """
@@ -46,6 +47,7 @@ defmodule ProvChain.Crypto.Signature do
       {:error, reason} -> {:error, reason}
     end
   end
+
   def sign(_, _), do: {:error, :invalid_input}
 
   @doc """
@@ -61,6 +63,7 @@ defmodule ProvChain.Crypto.Signature do
       {:error, _} -> false
     end
   end
+
   def verify(_, _, _), do: false
 
   @doc """

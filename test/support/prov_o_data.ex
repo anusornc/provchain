@@ -36,7 +36,7 @@ defmodule ProvChain.Test.ProvOData do
           "temperature" => 4.2,
           "fat_content" => 3.8,
           "protein_content" => 3.2,
-          "somatic_cell_count" => 180000
+          "somatic_cell_count" => 180_000
         }
       },
       "hash" => generate_hash("entity", batch_id)
@@ -247,26 +247,28 @@ defmodule ProvChain.Test.ProvOData do
     relationships = generate_relationships(processed_batch_id, activity_id, processor_id)
 
     # Add the "used" relationship to link to input batch
-    relationships = Map.put(relationships, "used", %{
-      "id" => "relation:usage:#{timestamp}",
-      "activity" => activity_id,
-      "entity" => input_batch_id,
-      "attributes" => %{
-        "prov:time" => timestamp,
-        "prov:role" => "input"
-      }
-    })
+    relationships =
+      Map.put(relationships, "used", %{
+        "id" => "relation:usage:#{timestamp}",
+        "activity" => activity_id,
+        "entity" => input_batch_id,
+        "attributes" => %{
+          "prov:time" => timestamp,
+          "prov:role" => "input"
+        }
+      })
 
     # Add the "wasDerivedFrom" relationship
-    relationships = Map.put(relationships, "wasDerivedFrom", %{
-      "id" => "relation:derivation:#{timestamp}",
-      "generatedEntity" => processed_batch_id,
-      "usedEntity" => input_batch_id,
-      "activity" => activity_id,
-      "attributes" => %{
-        "prov:type" => "prov:Revision"
-      }
-    })
+    relationships =
+      Map.put(relationships, "wasDerivedFrom", %{
+        "id" => "relation:derivation:#{timestamp}",
+        "generatedEntity" => processed_batch_id,
+        "usedEntity" => input_batch_id,
+        "activity" => activity_id,
+        "attributes" => %{
+          "prov:type" => "prov:Revision"
+        }
+      })
 
     %{
       "prov:entity" => processed_entity,
@@ -331,7 +333,8 @@ defmodule ProvChain.Test.ProvOData do
         "package_type" => "Tetra Pak",
         "volume" => 1.0,
         "units" => 950,
-        "best_before" => timestamp + 7_776_000_000, # 90 days in milliseconds
+        # 90 days in milliseconds
+        "best_before" => timestamp + 7_776_000_000,
         "batch_number" => "UHT-#{timestamp}",
         "barcode" => "5901234123457"
       },
@@ -357,26 +360,28 @@ defmodule ProvChain.Test.ProvOData do
     relationships = generate_relationships(package_id, activity_id, processor_id)
 
     # Add the "used" relationship to link to input processed milk
-    relationships = Map.put(relationships, "used", %{
-      "id" => "relation:usage:#{timestamp}",
-      "activity" => activity_id,
-      "entity" => input_processed_id,
-      "attributes" => %{
-        "prov:time" => timestamp,
-        "prov:role" => "input"
-      }
-    })
+    relationships =
+      Map.put(relationships, "used", %{
+        "id" => "relation:usage:#{timestamp}",
+        "activity" => activity_id,
+        "entity" => input_processed_id,
+        "attributes" => %{
+          "prov:time" => timestamp,
+          "prov:role" => "input"
+        }
+      })
 
     # Add the "wasDerivedFrom" relationship
-    relationships = Map.put(relationships, "wasDerivedFrom", %{
-      "id" => "relation:derivation:#{timestamp}",
-      "generatedEntity" => package_id,
-      "usedEntity" => input_processed_id,
-      "activity" => activity_id,
-      "attributes" => %{
-        "prov:type" => "prov:Revision"
-      }
-    })
+    relationships =
+      Map.put(relationships, "wasDerivedFrom", %{
+        "id" => "relation:derivation:#{timestamp}",
+        "generatedEntity" => package_id,
+        "usedEntity" => input_processed_id,
+        "activity" => activity_id,
+        "attributes" => %{
+          "prov:type" => "prov:Revision"
+        }
+      })
 
     %{
       "prov:entity" => package_entity,
@@ -428,7 +433,8 @@ defmodule ProvChain.Test.ProvOData do
       "attributes" => %{
         "prov:type" => "Distribution",
         "prov:startTime" => timestamp,
-        "prov:endTime" => timestamp + 14400, # 4 hours for delivery
+        # 4 hours for delivery
+        "prov:endTime" => timestamp + 14400,
         "route" => "Route-45",
         "cold_chain_maintained" => true
       },
@@ -451,15 +457,16 @@ defmodule ProvChain.Test.ProvOData do
     relationships = generate_relationships(shipment_id, activity_id, distributor_id)
 
     # Add the "used" relationship to link to input package
-    relationships = Map.put(relationships, "used", %{
-      "id" => "relation:usage:#{timestamp}",
-      "activity" => activity_id,
-      "entity" => input_package_id,
-      "attributes" => %{
-        "prov:time" => timestamp,
-        "prov:role" => "input"
-      }
-    })
+    relationships =
+      Map.put(relationships, "used", %{
+        "id" => "relation:usage:#{timestamp}",
+        "activity" => activity_id,
+        "entity" => input_package_id,
+        "attributes" => %{
+          "prov:time" => timestamp,
+          "prov:role" => "input"
+        }
+      })
 
     %{
       "prov:entity" => shipment_entity,

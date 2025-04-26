@@ -14,8 +14,9 @@ defmodule ProvChain.Utils.Serialization do
     sanitized_data = sanitize_for_json(data)
     :erlang.term_to_binary(sanitized_data)
   end
+
   def encode(data) when is_list(data) do
-    if Enum.any?(data, &is_map(&1) and is_map_key(&1, "hash")) do
+    if Enum.any?(data, &(is_map(&1) and is_map_key(&1, "hash"))) do
       sanitized_data = sanitize_for_json(data)
       :erlang.term_to_binary(sanitized_data)
     else
@@ -23,6 +24,7 @@ defmodule ProvChain.Utils.Serialization do
       Jason.encode!(serializable_data)
     end
   end
+
   def encode(data) do
     serializable_data = sanitize_for_json(data)
     Jason.encode!(serializable_data)
@@ -61,13 +63,17 @@ defmodule ProvChain.Utils.Serialization do
     |> Enum.map(fn {k, v} -> {to_string(k), sanitize_for_json(v)} end)
     |> Map.new()
   end
+
   def struct_to_map(value), do: sanitize_for_json(value)
 
   # Sanitizes data for JSON encoding
   defp sanitize_for_json(data) when is_map(data) do
     Enum.map(data, fn
-      {key, v} when key in ["hash", "validator", "signature", "merkle_root", "prev_hashes"] -> {key, v}
-      {k, v} -> {to_string(k), sanitize_for_json(v)}
+      {key, v} when key in ["hash", "validator", "signature", "merkle_root", "prev_hashes"] ->
+        {key, v}
+
+      {k, v} ->
+        {to_string(k), sanitize_for_json(v)}
     end)
     |> Enum.into(%{})
   end

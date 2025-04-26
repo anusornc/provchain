@@ -4,15 +4,19 @@ defmodule ProvChain.Application do
 
   @impl true
   def start(_type, _args) do
-    # เตรียม Mnesia ให้พร้อมใช้งาน
     ensure_mnesia_ready()
-
     Logger.info("Starting ProvChain Application")
 
-    children = [
-      {ProvChain.Storage.BlockStore, []},
-      {ProvChain.Storage.MemoryStore, []}
-    ]
+    children =
+      if Mix.env() == :test do
+        [{ProvChain.Storage.MemoryStore, []}]
+      else
+        [
+          {ProvChain.Storage.BlockStore, []},
+          {ProvChain.Storage.MemoryStore, []},
+          {ProvChain.KG.Store, []}
+        ]
+      end
 
     opts = [strategy: :one_for_one, name: ProvChain.Supervisor]
     Supervisor.start_link(children, opts)
@@ -20,36 +24,32 @@ defmodule ProvChain.Application do
 
   @impl true
   def stop(_state) do
-    # ตรวจสอบและปิด Mnesia อย่างปลอดภัย
     case :mnesia.system_info(:is_running) do
       :yes ->
-        Logger.info("กำลังปิด Mnesia อย่างปลอดภัย")
+        Logger.info("Stopping Mnesia safely")
         :mnesia.stop()
-        # รอเพื่อให้มีเวลาปิดอย่างสมบูรณ์
         Process.sleep(1000)
-      _ -> :ok
+      _ ->
+        :ok
     end
     :ok
   end
 
   defp ensure_mnesia_ready do
     mnesia_dir = Application.get_env(:mnesia, :dir) |> to_string()
-    Logger.info("กำลังเตรียม Mnesia ใน #{mnesia_dir}")
-
-    # สร้างไดเรกทอรีหากยังไม่มี
+    Logger.info("Preparing Mnesia in #{mnesia_dir}")
     File.mkdir_p!(mnesia_dir)
 
-    # เริ่ม Mnesia
     case :mnesia.start() do
       :ok ->
-        Logger.info("Mnesia เริ่มต้นสำเร็จ")
+        Logger.info("Mnesia started successfully")
         ProvChain.Helpers.MnesiaHelper.check_and_repair()
       {:error, {:already_started, _}} ->
-        Logger.info("Mnesia กำลังทำงานอยู่แล้ว")
+        Logger.info("Mnesia already running")
         ProvChain.Helpers.MnesiaHelper.check_and_repair()
       {:error, reason} ->
-        Logger.error("ไม่สามารถเริ่ม Mnesia: #{inspect(reason)}")
-        Logger.warning("กำลังพยายามสร้าง schema ใหม่")
+        Logger.error("Failed to start Mnesia: #{inspect(reason)}")
+        Logger.warning("Attempting to recreate schema")
         :mnesia.stop()
         :mnesia.delete_schema([node()])
         :mnesia.create_schema([node()])

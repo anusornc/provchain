@@ -4,7 +4,7 @@ defmodule ProvChain.Storage.MemoryStore do
   import Cachex.Spec
 
   @block_cache :provchain_blocks_cache
-  @tx_cache    :provchain_transactions_cache
+  @tx_cache :provchain_transactions_cache
   @tip_set_table :provchain_tip_set
   @default_timeout 5_000
 
@@ -24,7 +24,9 @@ defmodule ProvChain.Storage.MemoryStore do
   def put_block(hash, block) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.put(@block_cache, hash, block) do
-        {:ok, _} -> :ok
+        {:ok, _} ->
+          :ok
+
         {:error, reason} = err ->
           Logger.error("Failed to cache block #{Base.encode16(hash)}: #{inspect(reason)}")
           err
@@ -41,8 +43,12 @@ defmodule ProvChain.Storage.MemoryStore do
   def get_block(hash) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.get(@block_cache, hash) do
-        {:ok, nil} -> {:error, :not_found}
-        {:ok, block} -> {:ok, block}
+        {:ok, nil} ->
+          {:error, :not_found}
+
+        {:ok, block} ->
+          {:ok, block}
+
         {:error, reason} ->
           Logger.warning("Error retrieving block #{Base.encode16(hash)}: #{inspect(reason)}")
           {:error, :not_found}
@@ -58,7 +64,9 @@ defmodule ProvChain.Storage.MemoryStore do
   def put_transaction(hash, tx) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.put(@tx_cache, hash, tx) do
-        {:ok, _} -> :ok
+        {:ok, _} ->
+          :ok
+
         {:error, reason} = err ->
           Logger.error("Failed to cache transaction #{Base.encode16(hash)}: #{inspect(reason)}")
           err
@@ -75,10 +83,17 @@ defmodule ProvChain.Storage.MemoryStore do
   def get_transaction(hash) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.get(@tx_cache, hash) do
-        {:ok, nil} -> {:error, :not_found}
-        {:ok, tx} -> {:ok, tx}
+        {:ok, nil} ->
+          {:error, :not_found}
+
+        {:ok, tx} ->
+          {:ok, tx}
+
         {:error, reason} ->
-          Logger.warning("Error retrieving transaction #{Base.encode16(hash)}: #{inspect(reason)}")
+          Logger.warning(
+            "Error retrieving transaction #{Base.encode16(hash)}: #{inspect(reason)}"
+          )
+
           {:error, :not_found}
       end
     else
@@ -100,10 +115,16 @@ defmodule ProvChain.Storage.MemoryStore do
   def get_tip_set do
     # Ensure table exists before lookup
     initialize_ets_table()
+
     case :ets.lookup(@tip_set_table, :current) do
-      [{:current, blks}] -> blks
+      [{:current, blks}] ->
+        blks
+
       [] ->
-        Logger.debug("Tip set key :current not found in ETS table #{@tip_set_table}, reinitializing")
+        Logger.debug(
+          "Tip set key :current not found in ETS table #{@tip_set_table}, reinitializing"
+        )
+
         initialize_ets_table()
         []
     end
@@ -115,9 +136,14 @@ defmodule ProvChain.Storage.MemoryStore do
   def has_block?(hash) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.exists?(@block_cache, hash) do
-        {:ok, ex} -> ex
+        {:ok, ex} ->
+          ex
+
         {:error, reason} ->
-          Logger.warning("Error checking block existence for #{Base.encode16(hash)}: #{inspect(reason)}")
+          Logger.warning(
+            "Error checking block existence for #{Base.encode16(hash)}: #{inspect(reason)}"
+          )
+
           false
       end
     else
@@ -131,9 +157,14 @@ defmodule ProvChain.Storage.MemoryStore do
   def has_transaction?(hash) when is_binary(hash) do
     if is_cache_enabled?() do
       case Cachex.exists?(@tx_cache, hash) do
-        {:ok, ex} -> ex
+        {:ok, ex} ->
+          ex
+
         {:error, reason} ->
-          Logger.warning("Error checking transaction existence for #{Base.encode16(hash)}: #{inspect(reason)}")
+          Logger.warning(
+            "Error checking transaction existence for #{Base.encode16(hash)}: #{inspect(reason)}"
+          )
+
           false
       end
     else
@@ -155,25 +186,27 @@ defmodule ProvChain.Storage.MemoryStore do
     if is_cache_enabled?() do
       case {Cachex.stats(@block_cache), Cachex.stats(@tx_cache)} do
         {{:ok, b}, {:ok, t}} ->
-          hits   = (b[:hits] || 0) + (t[:hits] || 0)
+          hits = (b[:hits] || 0) + (t[:hits] || 0)
           misses = (b[:misses] || 0) + (t[:misses] || 0)
-          total  = hits + misses
-          rate   = if total > 0, do: hits / total * 100, else: 0.0
+          total = hits + misses
+          rate = if total > 0, do: hits / total * 100, else: 0.0
 
-          {:ok, %{
-            enabled: true,
-            size: (b[:size] || 0) + (t[:size] || 0),
-            hit_rate: rate,
-            hit_count: hits,
-            miss_count: misses,
-            eviction_count: (b[:evictions] || 0) + (t[:evictions] || 0),
-            blocks: b,
-            transactions: t
-          }}
+          {:ok,
+           %{
+             enabled: true,
+             size: (b[:size] || 0) + (t[:size] || 0),
+             hit_rate: rate,
+             hit_count: hits,
+             miss_count: misses,
+             eviction_count: (b[:evictions] || 0) + (t[:evictions] || 0),
+             blocks: b,
+             transactions: t
+           }}
 
         {{:error, reason}, _} ->
           Logger.error("Failed to get block cache stats: #{inspect(reason)}")
           {:error, :stats_unavailable}
+
         {_, {:error, reason}} ->
           Logger.error("Failed to get transaction cache stats: #{inspect(reason)}")
           {:error, :stats_unavailable}
@@ -207,10 +240,12 @@ defmodule ProvChain.Storage.MemoryStore do
   """
   def clear_tables do
     clear_cache()
+
     if :ets.whereis(@tip_set_table) != :undefined do
       :ets.delete(@tip_set_table)
       Logger.info("Deleted ETS table #{@tip_set_table}")
     end
+
     initialize_ets_table()
     Logger.info("ETS table #{@tip_set_table} reinitialized")
     :ok
@@ -221,8 +256,15 @@ defmodule ProvChain.Storage.MemoryStore do
   @impl true
   def init(opts) do
     cache_size = Keyword.get(opts, :max_cache_size, 10_000)
-    ttl        = Keyword.get(opts, :ttl, nil)
-    base_opts  = [limit: cache_size, policy: Cachex.Policy.LRU, stats: true, hooks: [hook(module: Cachex.Stats)]]
+    ttl = Keyword.get(opts, :ttl, nil)
+
+    base_opts = [
+      limit: cache_size,
+      policy: Cachex.Policy.LRU,
+      stats: true,
+      hooks: [hook(module: Cachex.Stats)]
+    ]
+
     cache_opts = if is_integer(ttl) and ttl > 0, do: [{:ttl, ttl} | base_opts], else: base_opts
 
     # Log cache options for debugging
@@ -237,6 +279,7 @@ defmodule ProvChain.Storage.MemoryStore do
       :error, reason ->
         Logger.error("Failed to start block cache: #{inspect(reason)}")
     end
+
     try do
       {:ok, _} = Cachex.start_link(@tx_cache, cache_opts)
       Logger.info("Transaction cache started successfully")
@@ -249,12 +292,15 @@ defmodule ProvChain.Storage.MemoryStore do
     case Cachex.stats(@block_cache) do
       {:ok, stats} ->
         Logger.debug("Block cache stats enabled: #{inspect(stats)}")
+
       {:error, reason} ->
         Logger.error("Block cache stats disabled: #{inspect(reason)}")
     end
+
     case Cachex.stats(@tx_cache) do
       {:ok, stats} ->
         Logger.debug("Transaction cache stats enabled: #{inspect(stats)}")
+
       {:error, reason} ->
         Logger.error("Transaction cache stats disabled: #{inspect(reason)}")
     end
@@ -302,7 +348,10 @@ defmodule ProvChain.Storage.MemoryStore do
         end
       catch
         _, reason ->
-          Logger.warning("Failed to get cache enabled state: #{inspect(reason)}. Assuming disabled.")
+          Logger.warning(
+            "Failed to get cache enabled state: #{inspect(reason)}. Assuming disabled."
+          )
+
           false
       end
     else
@@ -318,7 +367,8 @@ defmodule ProvChain.Storage.MemoryStore do
     else
       Logger.debug("ETS table #{@tip_set_table} already exists")
     end
-    unless :ets.lookup(@tip_set_table, :current) != [] do
+
+    if :ets.lookup(@tip_set_table, :current) == [] do
       :ets.insert(@tip_set_table, {:current, []})
       Logger.debug("Initialized ETS table #{@tip_set_table} with default tip set")
     end

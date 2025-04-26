@@ -19,6 +19,7 @@ config :logger,
 config :cachex,
   default_args: [stats: true],
   stats: true
+
 # Import production secrets if available
 if File.exists?("config/prod.secret.exs") do
   import_config "prod.secret.exs"

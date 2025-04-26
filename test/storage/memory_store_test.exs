@@ -22,6 +22,7 @@ defmodule ProvChain.Storage.MemoryStoreTest do
     # Clear caches and ETS table
     IO.puts("Clearing caches and ETS table")
     MemoryStore.clear_cache()
+
     if :ets.whereis(:provchain_tip_set) != :undefined do
       :ets.delete_all_objects(:provchain_tip_set)
       :ets.insert(:provchain_tip_set, {:current, []})

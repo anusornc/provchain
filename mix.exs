@@ -11,7 +11,7 @@ defmodule ProvChain.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: aliases(),
-      test_config_path: "config/test.exs",
+      test_config_path: "config/test.exs"
     ]
   end
 
@@ -36,9 +36,9 @@ defmodule ProvChain.MixProject do
       # JSON encoding/decoding
       {:jason, "~> 1.4"},
       {:eddy, "~> 1.0.0"},
-
       {:cachex, "~> 4.0.4"},
-
+      {:rdf, "~> 2.1"},
+      {:sparql, "~> 0.3"},
       {:mox, "~> 1.2"},
 
       # Development and testing

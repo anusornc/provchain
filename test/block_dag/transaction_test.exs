@@ -11,11 +11,13 @@ defmodule ProvChain.BlockDag.TransactionTest do
       activity = ProvOData.milk_collection_activity()
       agent = ProvOData.farmer_agent()
       relations = ProvOData.generate_relationships(entity["id"], activity["id"], agent["id"])
+
       supply_chain_data = %{
         "event_type" => "milk_collection",
         "tank_id" => "tank:456",
         "temperature" => 4.2
       }
+
       tx = Transaction.new(entity, activity, agent, relations, supply_chain_data)
       assert tx["prov:entity"] == entity
       assert tx["prov:activity"] == activity
@@ -46,25 +48,31 @@ defmodule ProvChain.BlockDag.TransactionTest do
   describe "validate/1" do
     test "validates correctly structured transaction" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       assert {:ok, _} = Transaction.validate(tx)
     end
 
     test "rejects transaction with missing fields" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       invalid_tx = Map.delete(tx, "prov:entity")
       assert {:error, error_msg} = Transaction.validate(invalid_tx)
       assert error_msg =~ "Missing required fields"
@@ -72,13 +80,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
 
     test "rejects transaction with invalid PROV-O types" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       invalid_tx = put_in(tx, ["prov:entity", "type"], "InvalidType")
       assert {:error, error_msg} = Transaction.validate(invalid_tx)
       assert error_msg =~ "Invalid entity type"
@@ -86,13 +97,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
 
     test "rejects transaction with missing required relations" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       invalid_relations = Map.delete(tx["prov:relations"], "wasGeneratedBy")
       invalid_tx = Map.put(tx, "prov:relations", invalid_relations)
       assert {:error, error_msg} = Transaction.validate(invalid_tx)
@@ -101,13 +115,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
 
     test "accepts transaction with invalid hash and updates it" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       invalid_tx = Map.put(tx, "hash", :crypto.hash(:sha256, "invalid"))
       {:ok, validated_tx} = Transaction.validate(invalid_tx)
       assert validated_tx["hash"] != invalid_tx["hash"]
@@ -118,13 +135,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
     test "signs a transaction and verifies signature" do
       {:ok, {private_key, _}} = Signature.generate_key_pair()
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       {:ok, signed_tx} = Transaction.sign(tx, private_key)
       assert is_binary(signed_tx["signature"])
       assert is_binary(signed_tx["signer"])
@@ -134,13 +154,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
     test "rejects invalid signature" do
       {:ok, {private_key, _}} = Signature.generate_key_pair()
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       {:ok, signed_tx} = Transaction.sign(tx, private_key)
       tampered_tx = put_in(signed_tx, ["supply_chain_data", "tank_id"], "tampered:789")
       {:ok, validated_tampered_tx} = Transaction.validate(tampered_tx)
@@ -151,21 +174,25 @@ defmodule ProvChain.BlockDag.TransactionTest do
   describe "link_to_previous/3" do
     test "links transaction to previous transaction" do
       collection_tx = ProvOData.milk_collection_transaction()
+
       entity = %{
         "id" => "processed:123",
         "type" => "prov:Entity",
         "attributes" => %{"prov:type" => "ProcessedMilk"}
       }
+
       activity = %{
         "id" => "processing:123",
         "type" => "prov:Activity",
         "attributes" => %{"prov:type" => "MilkProcessing"}
       }
+
       agent = %{
         "id" => "processor:123",
         "type" => "prov:Agent",
         "attributes" => %{"prov:type" => "DairyProcessor"}
       }
+
       relations = ProvOData.generate_relationships(entity["id"], activity["id"], agent["id"])
       supply_chain_data = %{"event_type" => "milk_processing"}
       processing_tx = Transaction.new(entity, activity, agent, relations, supply_chain_data)
@@ -214,13 +241,16 @@ defmodule ProvChain.BlockDag.TransactionTest do
   describe "to_json/1" do
     test "serializes transaction to JSON" do
       tx_data = ProvOData.milk_collection_transaction()
-      tx = Transaction.new(
-        tx_data["prov:entity"],
-        tx_data["prov:activity"],
-        tx_data["prov:agent"],
-        tx_data["prov:relations"],
-        tx_data["supply_chain_data"]
-      )
+
+      tx =
+        Transaction.new(
+          tx_data["prov:entity"],
+          tx_data["prov:activity"],
+          tx_data["prov:agent"],
+          tx_data["prov:relations"],
+          tx_data["supply_chain_data"]
+        )
+
       {:ok, json} = Transaction.to_json(tx)
       assert {:ok, decoded} = Jason.decode(json)
       assert decoded["prov:entity"]["id"] == tx["prov:entity"]["id"]

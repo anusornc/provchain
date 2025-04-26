@@ -26,7 +26,8 @@ defmodule ProvChain.Crypto.SignatureTest do
       data = "test data"
       {:ok, signature} = Signature.sign(data, private_key)
       assert is_binary(signature)
-      assert byte_size(signature) == 64  # Ed25519 signature is 64 bytes
+      # Ed25519 signature is 64 bytes
+      assert byte_size(signature) == 64
     end
 
     test "signature verification works correctly" do

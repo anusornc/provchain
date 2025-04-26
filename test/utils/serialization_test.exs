@@ -103,6 +103,7 @@ defmodule ProvChain.Utils.SerializationTest do
           "quality" => %{"grade" => "A"}
         }
       }
+
       json = Jason.encode!(entity)
 
       {:ok, decoded} = Serialization.decode_with_atoms(json)
@@ -117,6 +118,7 @@ defmodule ProvChain.Utils.SerializationTest do
     test "converts struct to serializable map with PROV-O content" do
       {_, validator} = Signature.generate_key_pair()
       prev_hash = :crypto.hash(:sha256, "prev_block_1")
+
       struct = %Block{
         hash: :crypto.hash(:sha256, "block_1"),
         prev_hashes: [prev_hash],
@@ -134,7 +136,10 @@ defmodule ProvChain.Utils.SerializationTest do
       result = Serialization.struct_to_map(struct)
 
       assert result["hash"] == Base.encode16(struct.hash, case: :upper)
-      assert result["prev_hashes"] == Enum.map(struct.prev_hashes, &Base.encode16(&1, case: :upper))
+
+      assert result["prev_hashes"] ==
+               Enum.map(struct.prev_hashes, &Base.encode16(&1, case: :upper))
+
       assert result["timestamp"] == struct.timestamp
       assert result["height"] == struct.height
       assert result["supply_chain_type"] == "milk_collection"

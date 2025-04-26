@@ -38,19 +38,23 @@ defmodule ProvChain.Crypto.Hash do
     The Merkle root hash or a zero hash if the list is empty
   """
   @spec merkle_root(list(binary())) :: binary()
-  def merkle_root([]), do: <<0::256>>  # Return zero hash (32 bytes) for empty list
+  # Return zero hash (32 bytes) for empty list
+  def merkle_root([]), do: <<0::256>>
   def merkle_root([single_hash]), do: single_hash
+
   def merkle_root(hashes) when is_list(hashes) do
     # Ensure even number of hashes by duplicating the last one if needed
-    hashes = if rem(length(hashes), 2) == 1 do
-      hashes ++ [List.last(hashes)]
-    else
-      hashes
-    end
+    hashes =
+      if rem(length(hashes), 2) == 1 do
+        hashes ++ [List.last(hashes)]
+      else
+        hashes
+      end
 
     # Combine adjacent pairs of hashes
-    combined = Enum.chunk_every(hashes, 2)
-               |> Enum.map(fn [h1, h2] -> hash(h1 <> h2) end)
+    combined =
+      Enum.chunk_every(hashes, 2)
+      |> Enum.map(fn [h1, h2] -> hash(h1 <> h2) end)
 
     # Recursively compute the Merkle root of the combined hashes
     merkle_root(combined)

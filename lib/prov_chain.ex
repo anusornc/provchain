@@ -50,7 +50,7 @@ defmodule ProvChain do
   def chain_info do
     %{
       version: version(),
-      status: :initializing,
+      status: :initializing
       # These will be implemented in later phases
       # height: ProvChain.BlockDag.Dag.height(),
       # tx_count: ProvChain.BlockDag.Dag.tx_count(),
