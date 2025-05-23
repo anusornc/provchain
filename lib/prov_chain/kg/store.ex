@@ -9,6 +9,8 @@ defmodule ProvChain.KG.Store do
   use GenServer
   alias ProvChain.KG.Builder
   alias RDF.Graph
+  alias ProvChain.Storage.BlockStore # Added alias
+  require Logger # Added require
 
   # Public API
 
@@ -54,23 +56,56 @@ defmodule ProvChain.KG.Store do
   # Private helpers
 
   defp rebuild_graph do
-    # read all transaction records from Mnesia
-    {:atomic, records} =
+    Logger.info("Rebuilding graph from Mnesia...")
+
+    table_name = BlockStore.transactions_table()
+    Logger.debug("Attempting to read from Mnesia table: #{inspect(table_name)}")
+
+    mnesia_result =
       :mnesia.transaction(fn ->
-        :mnesia.match_object({:transactions, :_, :_})
+        :mnesia.match_object({table_name, :_, :_})
       end)
 
-    # Extract and decode each transaction map
-    tx_list =
-      records
-      |> Enum.map(fn {_, _hash, bin} ->
-        :erlang.binary_to_term(bin)
-      end)
+    Logger.debug("Mnesia match_object result for table #{inspect(table_name)}: #{inspect(mnesia_result)}")
 
-    # Fold all transactions into one graph
-    Enum.reduce(tx_list, Graph.new([], prefixes: Builder.prefixes()), fn tx, acc ->
-      Builder.build_graph(tx)
-      |> then(&RDF.Data.merge(acc, &1))
-    end)
+    case mnesia_result do
+      {:atomic, records} ->
+        Logger.info(
+          "Found #{length(records)} records in Mnesia for table #{inspect(table_name)}."
+        )
+
+        tx_list =
+          records
+          |> Enum.map(fn
+            {^table_name, _hash, bin} -> # Changed hash to _hash
+              # Logger.debug("Processing record from table #{inspect(table_name)} with hash #{inspect(hash)}")
+              :erlang.binary_to_term(bin)
+            {other_table, _, _} ->
+              Logger.warning("Skipping record from unexpected table: #{inspect(other_table)}") # Changed Logger.warn to Logger.warning
+              nil
+          end)
+          |> Enum.reject(&is_nil/1)
+
+        Logger.info("Successfully decoded #{length(tx_list)} transactions from table #{inspect(table_name)}.")
+
+        final_graph =
+          Enum.reduce(tx_list, Graph.new([], prefixes: Builder.prefixes()), fn tx, acc ->
+            single_tx_graph = Builder.build_graph(tx)
+            RDF.Data.merge(acc, single_tx_graph)
+          end)
+
+        Logger.info(
+          "Finished rebuilding graph. Total triples: #{RDF.Graph.triple_count(final_graph)}"
+        )
+
+        final_graph
+
+      {:aborted, reason} ->
+        Logger.error(
+          "Mnesia transaction aborted in rebuild_graph for table #{inspect(table_name)}: #{inspect(reason)}"
+        )
+
+        Graph.new([], prefixes: Builder.prefixes())
+    end
   end
 end

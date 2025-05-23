@@ -17,8 +17,13 @@ defmodule ProvChain.KG.BuilderTest do
     tx = ProvOData.milk_collection_transaction()
     graph = Builder.build_graph(tx)
 
+    # Ensure the graph has the correct prefixes for SPARQL
+    graph_with_prefixes = RDF.Graph.add_prefixes(graph, %{prov: ProvChain.Ontology.NS.PROV, rdf: RDF.NS.RDF})
+
+    IO.inspect(RDF.Graph.triples(graph_with_prefixes), label: "Graph Triples")
+
     # Run the SPARQL query against the in-memory graph
-    {:ok, result} = ProvChain.SPARQL.Engine.query(@sparql, graph)
+    {:ok, result} = ProvChain.SPARQL.Engine.query(@sparql, graph_with_prefixes)
 
     # We expect exactly one result, whose ?s is the IRI ~i<prov:#{id}>
     [%{"s" => subject}] = result.results

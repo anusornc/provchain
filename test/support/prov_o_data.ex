@@ -13,6 +13,15 @@ defmodule ProvChain.Test.ProvOData do
     Hash.hash("#{prefix}:#{id}")
   end
 
+  # Utility to ensure no double prefixing in IDs
+  defp prefixed_id(type, id) do
+    if String.starts_with?(id, type <> ":") do
+      id
+    else
+      type <> ":" <> id
+    end
+  end
+
   @doc """
   Generates a sample PROV-O entity representing a milk batch.
 
@@ -175,9 +184,9 @@ defmodule ProvChain.Test.ProvOData do
   """
   def milk_collection_transaction do
     timestamp = :os.system_time(:millisecond)
-    batch_id = "batch:#{timestamp}"
-    activity_id = "collection:#{timestamp}"
-    farmer_id = "farmer:#{timestamp}"
+    batch_id = prefixed_id("batch", Integer.to_string(timestamp))
+    activity_id = prefixed_id("collection", Integer.to_string(timestamp))
+    farmer_id = prefixed_id("farmer", Integer.to_string(timestamp))
 
     entity = milk_batch_entity(batch_id)
     activity = milk_collection_activity(activity_id)
@@ -210,9 +219,9 @@ defmodule ProvChain.Test.ProvOData do
   """
   def milk_processing_transaction(input_batch_id) do
     timestamp = :os.system_time(:millisecond)
-    processed_batch_id = "processed:#{timestamp}"
-    activity_id = "processing:#{timestamp}"
-    processor_id = "processor:#{timestamp}"
+    processed_batch_id = prefixed_id("processed", Integer.to_string(timestamp))
+    activity_id = prefixed_id("processing", Integer.to_string(timestamp))
+    processor_id = prefixed_id("processor", Integer.to_string(timestamp))
 
     processed_entity = %{
       "id" => processed_batch_id,
@@ -321,9 +330,9 @@ defmodule ProvChain.Test.ProvOData do
   """
   def packaging_transaction(input_processed_id) do
     timestamp = :os.system_time(:millisecond)
-    package_id = "package:#{timestamp}"
-    activity_id = "packaging:#{timestamp}"
-    processor_id = "processor:#{timestamp}"
+    package_id = prefixed_id("package", Integer.to_string(timestamp))
+    activity_id = prefixed_id("packaging", Integer.to_string(timestamp))
+    processor_id = prefixed_id("processor", Integer.to_string(timestamp))
 
     package_entity = %{
       "id" => package_id,
@@ -409,9 +418,9 @@ defmodule ProvChain.Test.ProvOData do
   """
   def distribution_transaction(input_package_id) do
     timestamp = :os.system_time(:millisecond)
-    shipment_id = "shipment:#{timestamp}"
-    activity_id = "distribution:#{timestamp}"
-    distributor_id = "distributor:#{timestamp}"
+    shipment_id = prefixed_id("shipment", Integer.to_string(timestamp))
+    activity_id = prefixed_id("distribution", Integer.to_string(timestamp))
+    distributor_id = prefixed_id("distributor", Integer.to_string(timestamp))
 
     shipment_entity = %{
       "id" => shipment_id,
