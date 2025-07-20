@@ -40,12 +40,7 @@ defmodule ProvChain.MixProject do
       {:cachex, "~> 4.0.4"},
 
       {:mox, "~> 1.2"},
-      
-      # SPARQL and RDF dependencies (from PoC)
-      {:rdf, "~> 2.0"},
-      {:sparql, "~> 0.3"},
-      {:sparql_client, "~> 0.5"},
-      {:json_ld, "~> 0.3"},
+
       # Development and testing
       # Code quality checks
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

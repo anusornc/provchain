@@ -11,7 +11,9 @@ defmodule ProvChain.Application do
 
     children = [
       {ProvChain.Storage.BlockStore, []},
-      {ProvChain.Storage.MemoryStore, []}
+      {ProvChain.Storage.MemoryStore, []},
+      {ProvChain.Storage.RdfStore, []}
+      # ลบ GraphStore ออกเพราะมันไม่ใช่ GenServer
     ]
 
     opts = [strategy: :one_for_one, name: ProvChain.Supervisor]

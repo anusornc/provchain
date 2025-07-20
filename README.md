@@ -59,7 +59,7 @@ ProvChain is built with Elixir 1.18+ and uses a variety of libraries for blockch
 
 - Elixir 1.18+
 - Erlang OTP 26+
-- Optional: Neo4j for Knowledge Graph queries
+
 
 ### Testing
 
@@ -84,10 +84,10 @@ The project is being developed in several phases:
 - [x] Create serialization utilities
 - [x] Implement basic cryptographic utilities
 - [x] Design PROV-O data model for UHT milk supply chain
-- [ ] Implement transaction format with PROV-O entity-activity-agent model
-- [ ] Create hybrid persistence layer (ETS/DETS + RocksDB + Neo4j)
+- [x] Implement transaction format with PROV-O entity-activity-agent model
+- [x] Create hybrid persistence layer (ETS/DETS + Internal RDF/SPARQL)
 - [ ] Develop adaptive block referencing mechanism with multi-level structure
-- [ ] Complete transaction signing and verification
+- [x] Complete transaction signing and verification
 
 ### Phase 2: PROV-O & Supply Chain Integration
 - [ ] Create CSV to PROV-O transformation pipeline with templates for UHT milk events
