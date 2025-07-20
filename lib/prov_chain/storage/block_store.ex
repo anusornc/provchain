@@ -10,10 +10,13 @@ defmodule ProvChain.Storage.BlockStore do
   use GenServer
   require Logger
 
-  @blocks_table        :blocks
-  @transactions_table  :transactions
-  @height_index_table  :height_index
-  @type_index_table    :type_index
+  @blocks_table              :blocks
+  @transactions_table        :transactions
+  @height_index_table        :height_index
+  @type_index_table          :type_index
+  @data_blocks_table         :data_blocks
+  @aggregation_blocks_table  :aggregation_blocks
+  @checkpoint_blocks_table   :checkpoint_blocks
   @timeout             5_000
 
   # ---------------------------------------------------------------------
@@ -25,6 +28,9 @@ defmodule ProvChain.Storage.BlockStore do
   def transactions_table, do: @transactions_table
   def height_index_table, do: @height_index_table
   def type_index_table,   do: @type_index_table
+  def data_blocks_table, do: @data_blocks_table
+  def aggregation_blocks_table, do: @aggregation_blocks_table
+  def checkpoint_blocks_table, do: @checkpoint_blocks_table
 
   @doc "Clears all Mnesia tables (test only)"
   def clear_tables do
@@ -42,6 +48,21 @@ defmodule ProvChain.Storage.BlockStore do
   def put_block(_),                         do: {:error, :invalid_block}
 
   def get_block(hash) when is_binary(hash), do: GenServer.call(__MODULE__, {:get_block, hash}, @timeout)
+
+  def put_data_block(%ProvChain.BlockDag.DataBlock{} = block), do: GenServer.call(__MODULE__, {:put_data_block, block}, @timeout)
+  def put_data_block(_),                         do: {:error, :invalid_data_block}
+
+  def get_data_block(hash) when is_binary(hash), do: GenServer.call(__MODULE__, {:get_data_block, hash}, @timeout)
+
+  def put_aggregation_block(%ProvChain.BlockDag.AggregationBlock{} = block), do: GenServer.call(__MODULE__, {:put_aggregation_block, block}, @timeout)
+  def put_aggregation_block(_),                         do: {:error, :invalid_aggregation_block}
+
+  def get_aggregation_block(hash) when is_binary(hash), do: GenServer.call(__MODULE__, {:get_aggregation_block, hash}, @timeout)
+
+  def put_checkpoint_block(%ProvChain.BlockDag.CheckpointBlock{} = block), do: GenServer.call(__MODULE__, {:put_checkpoint_block, block}, @timeout)
+  def put_checkpoint_block(_),                         do: {:error, :invalid_checkpoint_block}
+
+  def get_checkpoint_block(hash) when is_binary(hash), do: GenServer.call(__MODULE__, {:get_checkpoint_block, hash}, @timeout)
 
   def put_transaction(%{"hash" => hash} = tx) when is_binary(hash), do: GenServer.call(__MODULE__, {:put_transaction, tx}, @timeout)
   def put_transaction(_),                 do: {:error, :invalid_transaction}
@@ -88,11 +109,112 @@ defmodule ProvChain.Storage.BlockStore do
     end
   end
 
+  @impl true
   def handle_call({:get_block, hash}, _from, state) do
     ensure_running!()
 
     result = :mnesia.transaction(fn ->
       case :mnesia.read(@blocks_table, hash) do
+        [{_, ^hash, data}] -> {:ok, :erlang.binary_to_term(data)}
+        _ -> {:error, :not_found}
+      end
+    end)
+
+    case result do
+      {:atomic, {:ok, block}} -> {:reply, {:ok, block}, state}
+      {:atomic, {:error, :not_found}} -> {:reply, {:error, :not_found}, state}
+      {:aborted, reason}         -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:put_data_block, %ProvChain.BlockDag.DataBlock{} = block}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      :mnesia.write({@data_blocks_table, block.hash, :erlang.term_to_binary(block)})
+      :mnesia.write({@height_index_table, block.height, block.hash, block.timestamp})
+      # Data blocks don't have a supply_chain_type directly, so we don't index by type here
+    end)
+
+    case result do
+      {:atomic, :ok} -> {:reply, :ok, state}
+      {:aborted, reason} -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_data_block, hash}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      case :mnesia.read(@data_blocks_table, hash) do
+        [{_, ^hash, data}] -> {:ok, :erlang.binary_to_term(data)}
+        _ -> {:error, :not_found}
+      end
+    end)
+
+    case result do
+      {:atomic, {:ok, block}} -> {:reply, {:ok, block}, state}
+      {:atomic, {:error, :not_found}} -> {:reply, {:error, :not_found}, state}
+      {:aborted, reason}         -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:put_aggregation_block, %ProvChain.BlockDag.AggregationBlock{} = block}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      :mnesia.write({@aggregation_blocks_table, block.hash, :erlang.term_to_binary(block)})
+      :mnesia.write({@height_index_table, block.height, block.hash, block.timestamp})
+    end)
+
+    case result do
+      {:atomic, :ok} -> {:reply, :ok, state}
+      {:aborted, reason} -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_aggregation_block, hash}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      case :mnesia.read(@aggregation_blocks_table, hash) do
+        [{_, ^hash, data}] -> {:ok, :erlang.binary_to_term(data)}
+        _ -> {:error, :not_found}
+      end
+    end)
+
+    case result do
+      {:atomic, {:ok, block}} -> {:reply, {:ok, block}, state}
+      {:atomic, {:error, :not_found}} -> {:reply, {:error, :not_found}, state}
+      {:aborted, reason}         -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:put_checkpoint_block, %ProvChain.BlockDag.CheckpointBlock{} = block}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      :mnesia.write({@checkpoint_blocks_table, block.hash, :erlang.term_to_binary(block)})
+      :mnesia.write({@height_index_table, block.height, block.hash, block.timestamp})
+    end)
+
+    case result do
+      {:atomic, :ok} -> {:reply, :ok, state}
+      {:aborted, reason} -> {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:get_checkpoint_block, hash}, _from, state) do
+    ensure_running!()
+
+    result = :mnesia.transaction(fn ->
+      case :mnesia.read(@checkpoint_blocks_table, hash) do
         [{_, ^hash, data}] -> {:ok, :erlang.binary_to_term(data)}
         _ -> {:error, :not_found}
       end
@@ -251,12 +373,18 @@ defmodule ProvChain.Storage.BlockStore do
     with :ok <- make.(@blocks_table,       attributes: [:hash, :data], type: :set),
          :ok <- make.(@transactions_table, attributes: [:hash, :data], type: :set),
          :ok <- make.(@height_index_table, attributes: [:height, :hash, :timestamp], type: :bag),
-         :ok <- make.(@type_index_table,   attributes: [:type, :hash, :timestamp],   type: :bag) do
+         :ok <- make.(@type_index_table,   attributes: [:type, :hash, :timestamp],   type: :bag),
+         :ok <- make.(@data_blocks_table, attributes: [:hash, :data], type: :set),
+         :ok <- make.(@aggregation_blocks_table, attributes: [:hash, :data], type: :set),
+         :ok <- make.(@checkpoint_blocks_table, attributes: [:hash, :data], type: :set) do
       :mnesia.wait_for_tables([
         @blocks_table,
         @transactions_table,
         @height_index_table,
-        @type_index_table
+        @type_index_table,
+        @data_blocks_table,
+        @aggregation_blocks_table,
+        @checkpoint_blocks_table
       ], 30_000)
     end
   end

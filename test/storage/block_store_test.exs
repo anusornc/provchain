@@ -4,6 +4,9 @@ defmodule ProvChain.Storage.BlockStoreTest do
 
   alias ProvChain.Storage.BlockStore
   alias ProvChain.BlockDag.Block
+  alias ProvChain.BlockDag.DataBlock
+  alias ProvChain.BlockDag.AggregationBlock
+  alias ProvChain.BlockDag.CheckpointBlock
   alias ProvChain.Crypto.Signature
 
   setup do
@@ -28,7 +31,10 @@ defmodule ProvChain.Storage.BlockStoreTest do
       {:blocks, [attributes: [:hash, :block], type: :set]},
       {:transactions, [attributes: [:hash, :transaction], type: :set]},
       {:height_index, [attributes: [:height, :hash, :timestamp], type: :bag]},
-      {:type_index, [attributes: [:type, :hash, :timestamp], type: :bag]}
+      {:type_index, [attributes: [:type, :hash, :timestamp], type: :bag]},
+      {:data_blocks, [attributes: [:hash, :data], type: :set]},
+      {:aggregation_blocks, [attributes: [:hash, :data], type: :set]},
+      {:checkpoint_blocks, [attributes: [:hash, :data], type: :set]}
     ]
 
     for {table, opts} <- tables do
@@ -97,6 +103,36 @@ defmodule ProvChain.Storage.BlockStoreTest do
     test "put_block/1 returns error for invalid block" do
       invalid = %{hash: "not_binary"}
       assert {:error, _} = BlockStore.put_block(invalid)
+    end
+
+    test "put_data_block/1 and get_data_block/1" do
+      {:ok, {_, validator}} = Signature.generate_key_pair()
+      data_block = DataBlock.new([], [%{"data" => "tx1"}], validator, "type1", %{})
+
+      assert :ok = BlockStore.put_data_block(data_block)
+      assert {:ok, fetched} = BlockStore.get_data_block(data_block.hash)
+      assert fetched.hash == data_block.hash
+      assert fetched.height == data_block.height
+    end
+
+    test "put_aggregation_block/1 and get_aggregation_block/1" do
+      {:ok, {_, validator}} = Signature.generate_key_pair()
+      agg_block = AggregationBlock.new([:crypto.hash(:sha256, "data_hash_1")], validator, %{})
+
+      assert :ok = BlockStore.put_aggregation_block(agg_block)
+      assert {:ok, fetched} = BlockStore.get_aggregation_block(agg_block.hash)
+      assert fetched.hash == agg_block.hash
+      assert fetched.height == agg_block.height
+    end
+
+    test "put_checkpoint_block/1 and get_checkpoint_block/1" do
+      {:ok, {_, validator}} = Signature.generate_key_pair()
+      cp_block = CheckpointBlock.new([:crypto.hash(:sha256, "agg_hash_1")], validator, %{})
+
+      assert :ok = BlockStore.put_checkpoint_block(cp_block)
+      assert {:ok, fetched} = BlockStore.get_checkpoint_block(cp_block.hash)
+      assert fetched.hash == cp_block.hash
+      assert fetched.height == cp_block.height
     end
   end
 
