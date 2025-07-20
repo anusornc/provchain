@@ -208,6 +208,10 @@ defmodule ProvChain.Test.ProvOData do
   ## Returns
     A map with entity, activity, agent, and relationships
   """
+  def milk_processing_transaction do
+    milk_processing_transaction("batch:#{:os.system_time(:millisecond)}")
+  end
+
   def milk_processing_transaction(input_batch_id) do
     timestamp = :os.system_time(:millisecond)
     processed_batch_id = "processed:#{timestamp}"

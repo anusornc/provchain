@@ -7,6 +7,7 @@ defmodule ProvChain.KnowledgeGraph.MilkSupplyChain do
   alias ProvChain.Test.ProvOData
   alias ProvChain.BlockDag.Transaction
   alias ProvChain.RDF.Converter
+  alias ProvChain.KnowledgeGraph.GraphStore
 
   @doc """
   Creates a complete milk supply chain trace starting from a given batch ID.
@@ -17,10 +18,14 @@ defmodule ProvChain.KnowledgeGraph.MilkSupplyChain do
     # Generate complete supply chain trace
     trace_transactions = generate_complete_trace(batch_id)
 
-    # Convert to RDF triples
-    trace_transactions
-    |> Enum.flat_map(&Converter.transaction_to_rdf_triples/1)
-    |> Enum.uniq()
+    # Convert to RDF triples and store in GraphStore
+    all_triples =
+      trace_transactions
+      |> Enum.flat_map(&Converter.transaction_to_rdf_triples/1)
+      |> Enum.uniq()
+
+    GraphStore.store_triples(all_triples)
+    all_triples
   end
 
   @doc """
@@ -545,8 +550,8 @@ defmodule ProvChain.KnowledgeGraph.MilkSupplyChain do
     })
     |> Map.put("wasDerivedFrom", %{
       "id" => "relation:derivation:#{timestamp}",
-      "generated_uri" => entity_id,
-      "used_uri" => source_entity_id,
+      "generatedEntity" => entity_id,
+      "usedEntity" => source_entity_id,
       "activity" => activity_id,
       "attributes" => %{"prov:type" => "prov:Revision"}
     })

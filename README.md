@@ -29,12 +29,55 @@ lib/
 │   ├── application.ex          # Application supervisor
 │   ├── block_dag/              # Block-DAG structures
 │   │   └── block.ex            # Block structure
-│   ├── crypto/                 # Cryptography
+│       ├── crypto/                 # Cryptography
 │   │   ├── hash.ex             # Hashing functions
 │   │   └── signature.ex        # Transaction signing
 │   └── utils/                  # Utilities
 │       └── serialization.ex    # Data serialization
 ├── prov_chain.ex               # Main module
+```
+
+## Development Plan
+
+The project is being developed in several phases:
+
+### Phase 1: Core Architecture & Foundation
+- [x] Set up Elixir project structure with dependency management
+- [x] Define specialized Block-DAG data structures for dairy supply chain
+- [x] Create serialization utilities
+- [x] Implement basic cryptographic utilities
+- [x] Design PROV-O data model for UHT milk supply chain
+- [x] Implement transaction format with PROV-O entity-activity-agent model
+- [x] Create hybrid persistence layer (ETS/DETS + Internal RDF/SPARQL)
+- [x] Develop adaptive block referencing mechanism with multi-level structure
+- [x] Complete transaction signing and verification
+
+### Phase 2: PROV-O & Supply Chain Integration
+- [ ] Create CSV to PROV-O transformation pipeline with templates for UHT milk events
+- [ ] Implement parallel processing for transformation using Elixir concurrency
+- [ ] Design validation rules specific to dairy supply chain transitions
+- [ ] Develop explicit transaction linking using PROV-O relationships
+- [ ] Create specialized Merkle structures for UHT milk traceability
+- [ ] Implement edge computing support for resource-constrained participants
+
+### Phase 3: Consensus & Network Layer
+- [ ] Implement Hybrid PoA with reputation-weighted validation
+- [ ] Develop multi-level vouching system with trust scores
+- [ ] Build validator rotation mechanism to prevent centralization
+- [ ] Create social trust model with probation period for new validators
+- [ ] Implement block propagation optimized for DAG structure
+- [ ] Design and implement conflict resolution protocol for DAG consistency
+
+### Phase 4-7: Knowledge Graph, Query Optimization, Performance, Compliance
+See full development plan for details on these phases.
+
+## Acknowledgements
+
+This project aims to surpass existing blockchain solutions like PHANTOM through domain-specific optimizations, sophisticated materialized path strategies, and parallel validation pipelines that leverage Elixir's actor model.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 ```
 
 ## Installation

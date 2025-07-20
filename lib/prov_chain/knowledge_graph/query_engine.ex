@@ -94,24 +94,29 @@ defmodule ProvChain.KnowledgeGraph.QueryEngine do
       "http://www.w3.org/ns/prov#wasDerivedFrom"
     ]
 
-    chain = 
-      all_triples
-      |> Enum.filter(fn {_s, p, _o} ->
-        Enum.any?(derivation_patterns, &String.contains?(to_string(p), &1))
-      end)
-      |> Enum.reduce([], fn {s, p, o}, acc ->
-        if o == entity_uri do
-          [%{from: o, to: s, relationship: p} | acc]
-        else
-          acc
-        end
-      end)
+    chain = do_find_derivation_chain(all_triples, entity_uri, [], derivation_patterns)
 
     %{
       entity: entity_uri,
       derivation_chain: chain,
       total_steps: length(chain)
     }
+  end
+
+  defp do_find_derivation_chain(_all_triples, nil, chain, _derivation_patterns), do: Enum.reverse(chain)
+  defp do_find_derivation_chain(all_triples, current_entity, chain, derivation_patterns) do
+    direct_derivation =
+      all_triples
+      |> Enum.find(fn {s, p, _o} ->
+        s == current_entity and Enum.any?(derivation_patterns, &String.contains?(to_string(p), &1))
+      end)
+
+    if direct_derivation do
+      {s, p, o} = direct_derivation
+      do_find_derivation_chain(all_triples, o, [{s, p, o} | chain], derivation_patterns)
+    else
+      Enum.reverse(chain)
+    end
   end
 
   @doc """
@@ -148,6 +153,16 @@ defmodule ProvChain.KnowledgeGraph.QueryEngine do
   """
   def get_graph_stats do
     GraphStore.get_stats()
+  end
+
+  @doc """
+  Gets the complete supply chain network for a given entity.
+  This is a placeholder and needs a proper implementation.
+  """
+  def get_supply_chain_network(entity_iri) do
+    # Placeholder implementation: return all triples for now
+    all_triples = GraphStore.get_all_triples()
+    %{entity: entity_iri, network: all_triples, count: length(all_triples)}
   end
 
   # Private functions

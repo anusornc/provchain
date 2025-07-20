@@ -34,20 +34,20 @@ defmodule SupplyChainBenchmark do
         "add_triples_to_store" => fn _input ->
           batch_id = "store_test_#{System.system_time()}"
           triples = MilkSupplyChain.create_milk_trace(batch_id)
-          GraphStore.add_triples(triples)
+          GraphStore.store_triples(triples)
         end,
         "trace_to_origin" => fn _input ->
           # Use pre-existing test data
           product_iri = "http://example.org/milk/package/test_batch_001"
-          QueryEngine.trace_to_origin(product_iri)
+          QueryEngine.find_derivation_chain(product_iri)
         end,
         "contamination_impact" => fn _input ->
           # Use pre-existing test data
           batch_iri = "http://example.org/milk/batch/test_batch_001"
-          QueryEngine.contamination_impact(batch_iri)
+          QueryEngine.find_derived_entities(batch_iri)
         end,
         "count_entities" => fn _input ->
-          QueryEngine.count_entities()
+          QueryEngine.find_entities_by_type("prov:Entity")
         end,
         "supply_chain_network" => fn _input ->
           # Use pre-existing test data
@@ -88,7 +88,7 @@ defmodule SupplyChainBenchmark do
       for size <- data_sizes, into: %{} do
         {"#{size}_supply_chains", fn ->
           # Clear graph for clean test
-          GraphStore.clear_graph()
+          GraphStore.clear()
 
           # Create multiple supply chains
           all_triples = 1..size
@@ -97,11 +97,11 @@ defmodule SupplyChainBenchmark do
           end)
 
           # Add to graph store
-          GraphStore.add_triples(all_triples)
+          GraphStore.store_triples(all_triples)
 
           # Query the first batch
           first_batch_iri = "http://example.org/milk/package/scale_test_#{size}_1_#{System.system_time()}"
-          QueryEngine.trace_to_origin(first_batch_iri)
+          QueryEngine.find_derivation_chain(first_batch_iri)
         end}
       end
 
@@ -138,13 +138,13 @@ defmodule SupplyChainBenchmark do
 
     query_jobs = %{
       "simple_entity_count" => fn ->
-        QueryEngine.count_entities()
+        QueryEngine.find_entities_by_type("prov:Entity")
       end,
       "single_product_trace" => fn ->
-        QueryEngine.trace_to_origin("http://example.org/milk/package/large_dataset_1")
+        QueryEngine.find_derivation_chain("http://example.org/milk/package/large_dataset_1")
       end,
       "contamination_impact_analysis" => fn ->
-        QueryEngine.contamination_impact("http://example.org/milk/batch/large_dataset_1")
+        QueryEngine.find_derived_entities("http://example.org/milk/batch/large_dataset_1")
       end,
       "full_supply_chain_network" => fn ->
         QueryEngine.get_supply_chain_network("http://example.org/milk/batch/large_dataset_10")
@@ -178,7 +178,7 @@ defmodule SupplyChainBenchmark do
   # Helper functions
   defp setup_test_data do
     # Clear and setup basic test data
-    GraphStore.clear_graph()
+    GraphStore.clear()
 
     # Create a few test supply chains
     test_triples = 1..3
@@ -186,12 +186,12 @@ defmodule SupplyChainBenchmark do
       MilkSupplyChain.create_milk_trace("test_batch_00#{i}")
     end)
 
-    GraphStore.add_triples(test_triples)
+    GraphStore.store_triples(test_triples)
   end
 
   defp setup_large_dataset do
     IO.puts("🔧 Setting up large dataset for query testing...")
-    GraphStore.clear_graph()
+    GraphStore.clear()
 
     # Create 30 supply chains for query testing
     large_dataset_triples = 1..30
@@ -199,7 +199,7 @@ defmodule SupplyChainBenchmark do
       MilkSupplyChain.create_milk_trace("large_dataset_#{i}")
     end)
 
-    GraphStore.add_triples(large_dataset_triples)
+    GraphStore.store_triples(large_dataset_triples)
     IO.puts("✅ Large dataset ready: #{length(large_dataset_triples)} triples")
   end
 

@@ -1,7 +1,7 @@
 defmodule ProvChain.Integration.BasicSparqlTest do
   use ExUnit.Case, async: false
   
-  alias ProvChain.Storage.{Manager, RdfStore}
+  alias ProvChain.Storage.Manager
   alias ProvChain.Test.ProvOData
   
   setup do

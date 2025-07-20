@@ -1,7 +1,7 @@
 defmodule ProvChain.RDF.IntegrationTest do
   use ExUnit.Case, async: true
 
-  alias ProvChain.RDF.{Converter, Integration}
+  alias ProvChain.RDF.Converter
   alias ProvChain.SPARQL.Processor
   alias ProvChain.Test.ProvOData
 

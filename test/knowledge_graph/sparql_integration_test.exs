@@ -1,7 +1,5 @@
 defmodule ProvChain.KnowledgeGraphTest do
   use ExUnit.Case, async: false
-  @tag :skip
-
   alias ProvChain.KnowledgeGraph.{MilkSupplyChain, QueryEngine, GraphStore}
 
   setup do
@@ -38,16 +36,22 @@ defmodule ProvChain.KnowledgeGraphTest do
       assert entity_count.count >= 3
     end
 
-    @tag :skip
-  test "traces product to origin correctly" do
+    test "traces product to origin correctly" do
       batch_id = "trace_test_#{System.system_time()}"
 
       # Create and store supply chain
-      triples = MilkSupplyChain.create_milk_trace(batch_id)
-      GraphStore.store_triples(triples)
+      trace_triples = MilkSupplyChain.create_milk_trace(batch_id)
+
+      # Find the packaged milk entity from the trace
+      packaged_milk_entity = Enum.find(trace_triples, fn {s, p, o} ->
+        String.contains?(s, "package:") and String.contains?(p, "rdf:type") and String.contains?(o, "PackagedUHTMilk")
+      end)
+
+      packaged_milk_iri = if packaged_milk_entity, do: elem(packaged_milk_entity, 0), else: nil
+
+      assert packaged_milk_iri != nil, "Packaged milk entity not found in trace"
 
       # Trace packaged milk back to origin
-      packaged_milk_iri = "http://example.org/milk/package/#{batch_id}"
       trace_results = QueryEngine.find_derivation_chain(packaged_milk_iri)
 
       # Should find results (either from SPARQL or fallback)

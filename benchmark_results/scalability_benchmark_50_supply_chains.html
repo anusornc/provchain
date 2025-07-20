@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Benchee Report</title>
+  <meta charset="utf-8">
+  <meta http-equiv="content-type" content="text/html; charset=utf8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+    <link rel="stylesheet" type="text/css" href="assets/stylesheets/benchee.css">
+    <link rel="stylesheet" type="text/css" href="assets/fontello/css/fontello.css">
+  
+</head>
+
+  <body>
+
+    <div class="header">
+  <h1>benchee report</h1>
+  
+
+  <span class="version-note">
+  <a href="javascript:toggleSystemDataInfo();" title="Click to toggle system info">System info</a>
+</span>
+
+</div>
+
+
+    <article id="system-info" class="benchee-systeminfo" >
+  <h3>System info</h3>
+  <ul class="benchee-systeminfo-list">
+    <li>Elixir: 1.18.4</li>
+    <li>Erlang: 28.0.2</li>
+    <li>Operating system: macOS</li>
+    <li>Available memory: 8 GB</li>
+    <li>CPU Information: Apple M1</li>
+    <li>Number of Available Cores: 8</li>
+  </ul>
+</article>
+
+
+    
+      <article>
+        <h2>
+          <a name="run_time" href="#run_time">50_supply_chains Run Time</a>
+          <a href="https://github.com/PragTob/benchee_html/wiki/Chart-Types#individual">
+            <i
+              class="benchee-help-icon icon-question-circle-o"
+              title="Graphs showing the individual run time distribution for 50_supply_chains.
+  Run Times Histogram shows the distribution of occurrences of specific run times in buckets.
+  Raw Run Times shows all individual recorded run times in the order they were recorded in."
+            ></i>
+          </a>
+        </h2>
+
+        <section>
+          <table>
+  <thead>
+    <tr>
+      <th class="text-left">Name</th>
+      
+        <th>Iterations per Second</th>
+      
+      <th>Average</th>
+      <th>Deviation</th>
+      <th>Median</th>
+      <th>Mode</th>
+      <th>Minimum</th>
+      <th>Maximum</th>
+      <th>Sample size</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      
+      <tr>
+        
+          <td class="text-left">50_supply_chains</td>
+        
+        
+          <td>37.87</td>
+          <td>26.41 ms</td>
+          <td>±4.75%</td>
+          <td>26.20 ms</td>
+          <td>none</td>
+          <td>24.86 ms</td>
+          <td>37.26 ms</td>
+        
+        <td>228</td>
+      </tr>
+    
+  </tbody>
+</table>
+
+        </section>
+
+        <section class="benchee-plot-container">
+          <div id="run-times-histogram" class="plot"></div>
+        </section>
+        <section class="benchee-plot-container">
+          <div id="raw-run-times" class="plot"></div>
+        </section>
+      </article>
+    
+
+    
+      <article>
+        <h2>
+          <a name="memory" href="#memory">50_supply_chains Memory</a>
+          <a href="https://github.com/PragTob/benchee_html/wiki/Chart-Types#individual">
+            <i
+              class="benchee-help-icon icon-question-circle-o"
+              title="Graphs showing the individual memory usage distribution for 50_supply_chains.
+  Run Times Histogram shows the distribution of occurrences of specific run times in buckets.
+  Raw Run Times shows all individual recorded run times in the order they were recorded in."
+            ></i>
+          </a>
+        </h2>
+
+        <section>
+          <table>
+  <thead>
+    <tr>
+      <th class="text-left">Name</th>
+      
+      <th>Average</th>
+      <th>Deviation</th>
+      <th>Median</th>
+      <th>Mode</th>
+      <th>Minimum</th>
+      <th>Maximum</th>
+      <th>Sample size</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+      
+      <tr>
+        
+          <td class="text-left">50_supply_chains</td>
+        
+        
+          <td>7.36 MB</td>
+          <td>±0.07%</td>
+          <td>7.36 MB</td>
+          <td>none</td>
+          <td>7.35 MB</td>
+          <td>7.37 MB</td>
+        
+        <td>114</td>
+      </tr>
+    
+  </tbody>
+</table>
+
+        </section>
+
+        
+          <section class="benchee-plot-container">
+            <div id="memory-histogram" class="plot"></div>
+          </section>
+          <section class="benchee-plot-container">
+            <div id="raw-memory" class="plot"></div>
+          </section>
+        
+      </article>
+    
+
+    <footer>
+      <a href="https://github.com/PragTob/benchee" target="blank">benchee version: 1.4.0 </a>
+<br/>
+<a href="https://github.com/PragTob/benchee_html" target="blank">benchee_html version: 1.0.1</a>
+
+
+    </footer>
+
+    
+  <script src="assets/javascripts/plotly-2.27.0.min.js"></script>
+  <script src="assets/javascripts/benchee.js"></script>
+
+
+
+    <script>
+      var scenario = {"name":"50_supply_chains","job_name":"50_supply_chains","input_name":"__no_input","run_time_data":{"statistics":{"maximum":37258926,"mode":null,"sample_size":228,"average":26408410.42982456,"std_dev_ratio":0.047488470862575356,"ips":37.86672441559154,"std_dev_ips":1.7982328390709899,"percentiles":{"25":25727088.5,"50":26196459.0,"75":26724671.75,"99":32816837.42000002},"median":26196459.0,"minimum":24863879,"absolute_difference":25916553.873476136,"relative_less":0.01862499667124769,"relative_more":53.69128476375776,"std_dev":1254095.029223655},"samples":[26247056,26095143,25519323,25220247,26407761,26729044,25942564,25994311,25878815,25671903,26150600,26831126,25388868,25311370,25298746,25612947,26070809,26304181,25564488,24943295,25201164,25962604,26161059,26131643,26426552,25769901,25385367,25120124,26452094,26975290,26234681,26116643,26465760,26280096,25738318,25255079,25856982,26529258,26801586,26615339,25507031,25998729,29679226,31084152,29134782,25545031,25268204,25608070,25719902,25494741,27472653,25730402,25328702,25537989,25817774,26994915,25452368,25609654,25976687,26094268,26415719,25907189,25914105,26231057,26173933,26537799,25739152,26295805,25997811,25117166,24932711,25919232,26437720,26707545,27007663,27148619,26753087,25851691,25401494,25570488,26391344,33524554,28010599,27626441,27672565,26844625,27710398,26697712,27458069,26828626,37258926,26515342,27142244,26738878,26446343,26106850,26688963,26259014,26102435,26359512,26488634,26942290,25441659,24863879,25916648,26168016,26586465,26866417,26416718,25604864,26030520,27508069,28864620,25542948,25378369,25397117,25789151,26313098,26661130,26220557,25648820,25561906,25451200,25725984,26772503,25406617,25175206,25392285,25919689,27308697,25969637,25333464,25922079,26602436,25634103,26240123,26064505,25934312,26106863,26089363,25684457,26931758,26218985,26241651,26527601,26392355,26012031,25789371,25056598,26486853,26588724,25090764,28071935,25140763,27002214,25623791,26786803,26265983,26329939,26518227,26020657,25970532,26436770,25912076,26168069,26024197,27011132,26549643,25793619,25051807,25211927,25678790,26855884,25612000,25740706,26524935,26773220,25787829,26873051,25700581,27441245,26449269,26044573,25254217,25502753,26468394,26169278,25928116,26711555,26573933,26530310,26891217,26249192,27499118,28577589,26929591,27387788,29188740,28736669,27258916,27794735,26533560,26680097,27885317,27504827,26007573,27654364,26934049,27328289,29422234,29323696,27080170,27198459,26346480,25847662,27363413,26067530,25897159,25830412,25676873,26422979,26471145,26473686,25573835,25259383,26232943,26124153,26510060]},"memory_usage_data":{"statistics":{"maximum":7732552,"mode":null,"sample_size":114,"average":7721219.859649123,"std_dev_ratio":6.997019854271077e-4,"ips":null,"std_dev_ips":null,"percentiles":{"25":7717860.0,"50":7.7211e6,"75":7724352.0,"99":7732526.8},"median":7.7211e6,"minimum":7706808,"absolute_difference":7569475.596176069,"relative_less":0.019652887267990533,"relative_more":50.883108744471414,"std_dev":5402.552865715705},"samples":[7721088,7713584,7719432,7713336,7725448,7723608,7717864,7715352,7722704,7721968,7732384,7720304,7721104,7725592,7714296,7714448,7722504,7719088,7717240,7719608,7720032,7720504,7724056,7719968,7716848,7709080,7711800,7719992,7725992,7730968,7727448,7720416,7729072,7713408,7723368,7720088,7721816,7727200,7729080,7725256,7728008,7723520,7717848,7728152,7726384,7713648,7723328,7714360,7720600,7706808,7710312,7731008,7724336,7712888,7723888,7719184,7731736,7722728,7732552,7718536,7719904,7712776,7720056,7715192,7717992,7721920,7722368,7730200,7720432,7726880,7722928,7722784,7723864,7729240,7722040,7720072,7714792,7731104,7716984,7719248,7724400,7718512,7717128,7718992,7722416,7718336,7723048,7719344,7723592,7716080,7711488,7713032,7730120,7718320,7724304,7731336,7719200,7720896,7727624,7715440,7717232,7725728,7714184,7722352,7723256,7722216,7723288,7717736,7724904,7724960,7721096,7722248,7722528,7725784]},"tag":null};
+
+      var inputHeadline = ""
+
+      
+        drawRunTimeHistogram(scenario, inputHeadline);
+        drawRawRunTimeChart(scenario, inputHeadline);
+      
+
+      
+        if (scenario.memory_usage_data.statistics.std_dev !== 0) {
+          drawMemoryHistogram(scenario, inputHeadline);
+          drawRawMemoryChart(scenario, inputHeadline);
+        };
+      
+    </script>
+  </body>
+</html>

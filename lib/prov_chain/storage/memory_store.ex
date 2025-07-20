@@ -110,6 +110,13 @@ defmodule ProvChain.Storage.MemoryStore do
   end
 
   @doc """
+  Sets the tip set in ETS to the given list of hashes.
+  """
+  def set_tips(tip_hashes) when is_list(tip_hashes) do
+    GenServer.call(__MODULE__, {:set_tips, tip_hashes}, @default_timeout)
+  end
+
+  @doc """
   Checks if a block exists in the cache.
   """
   def has_block?(hash) when is_binary(hash) do
@@ -275,6 +282,13 @@ defmodule ProvChain.Storage.MemoryStore do
     # Ensure ETS table exists
     initialize_ets_table()
     :ets.insert(@tip_set_table, {:current, blocks})
+    {:reply, :ok, state}
+  end
+
+  @impl true
+  def handle_call({:set_tips, tip_hashes}, _from, state) do
+    initialize_ets_table()
+    :ets.insert(@tip_set_table, {:current, tip_hashes})
     {:reply, :ok, state}
   end
 

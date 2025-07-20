@@ -14,7 +14,6 @@ defmodule ProvChain.BlockDag.CheckpointBlock do
   ]
 
   alias ProvChain.Crypto.Hash
-  alias ProvChain.Storage.BlockStore
 
   @type hash_type :: binary()
 

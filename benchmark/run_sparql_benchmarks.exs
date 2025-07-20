@@ -14,18 +14,19 @@ defmodule BenchmarkRunner do
   """
 
   def main(args \\ []) do
+    # Load the benchmark module and make its functions available
+    Code.eval_file("benchmark/sparql_benchmarks.exs")
+    # Explicitly alias the module after it's loaded
+    alias SupplyChainBenchmark
+
     case args do
       ["main"] ->
-        load_benchmark_module()
         SupplyChainBenchmark.run_main_benchmarks()
       ["scalability"] ->
-        load_benchmark_module()
         SupplyChainBenchmark.run_scalability_benchmarks()
       ["query"] ->
-        load_benchmark_module()
         SupplyChainBenchmark.run_query_benchmarks()
       ["all"] ->
-        load_benchmark_module()
         SupplyChainBenchmark.run_all_benchmarks()
       _ ->
         IO.puts("""
@@ -44,11 +45,6 @@ defmodule BenchmarkRunner do
           mix run benchmark/run_benchmarks.exs all
         """)
     end
-  end
-
-  defp load_benchmark_module do
-    # Load the benchmark module
-    Code.eval_file("benchmark/supply_chain_benchmark.exs")
   end
 end
 

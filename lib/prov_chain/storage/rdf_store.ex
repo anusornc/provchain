@@ -107,13 +107,11 @@ defmodule ProvChain.Storage.RdfStore do
   @impl true
   def handle_call({:add_triples, triples}, _from, state) do
     try do
-      # Validate and normalize triples
       normalized_triples =
         triples
         |> Enum.map(&normalize_triple/1)
         |> Enum.filter(&valid_triple?/1)
 
-      # Add to state
       new_triples = state.triples ++ normalized_triples
       new_indexes = update_indexes(state.indexes, normalized_triples)
 

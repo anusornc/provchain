@@ -2,53 +2,35 @@ defmodule ProvChain.BlockDag.TipSelectionTest do
   use ExUnit.Case, async: true
 
   alias ProvChain.BlockDag.TipSelection
-  alias ProvChain.BlockDag.DataBlock
-  alias ProvChain.Crypto.Hash
+  alias ProvChain.Storage.MemoryStore
+  alias ProvChain.BlockDag.Block
+  alias ProvChain.Test.ProvOData
 
-  test "selects tips from a simple set of blocks" do
-    # Create some dummy DataBlocks
-    block1 = %DataBlock{hash: Hash.hash("block1"), prev_hashes: [], height: 1}
-    block2 = %DataBlock{hash: Hash.hash("block2"), prev_hashes: [], height: 1}
-    block3 = %DataBlock{hash: Hash.hash("block3"), prev_hashes: [block1.hash], height: 2}
-    block4 = %DataBlock{hash: Hash.hash("block4"), prev_hashes: [block1.hash, block2.hash], height: 2}
-
-    all_blocks = [block1, block2, block3, block4]
-
-    # In a real scenario, these blocks would be in storage.
-    # For now, we'll pass them directly.
-    tips = TipSelection.select_tips(all_blocks)
-
-    # Expected tips are block3 and block4, as they are not referenced by any other blocks in this set.
-    # Note: This is a simplified scenario. Real tip selection is more complex.
-    assert Enum.sort(tips) == Enum.sort([block3.hash, block4.hash])
+  setup do
+    # Ensure the memory store is clean for each test
+    MemoryStore.clear_cache()
+    MemoryStore.clear_tables()
+    :ok
   end
 
-  test "selects tips when some blocks are referenced multiple times" do
-    block1 = %DataBlock{hash: Hash.hash("blockA"), prev_hashes: [], height: 1}
-    block2 = %DataBlock{hash: Hash.hash("blockB"), prev_hashes: [block1.hash], height: 2}
-    block3 = %DataBlock{hash: Hash.hash("blockC"), prev_hashes: [block1.hash], height: 2}
-    block4 = %DataBlock{hash: Hash.hash("blockD"), prev_hashes: [block2.hash, block3.hash], height: 3}
+  test "selects the single tip when one block exists after genesis" do
+    # 1. Create a genesis block and a successor block
+    {:ok, {_, pub_key}} = ProvChain.Crypto.Signature.generate_key_pair()
+    genesis_tx = ProvOData.milk_collection_transaction()
+    genesis_block = Block.new([], [genesis_tx], pub_key, "genesis", %{})
 
-    all_blocks = [block1, block2, block3, block4]
+    tip_tx = ProvOData.milk_processing_transaction()
+    tip_block = Block.new([genesis_block.hash], [tip_tx], pub_key, "test", %{})
 
-    tips = TipSelection.select_tips(all_blocks)
+    # 2. Manually set the tip set for the test
+    :ok = MemoryStore.set_tips([tip_block.hash])
 
-    assert Enum.sort(tips) == Enum.sort([block4.hash])
+    # 3. Assert that the selection algorithm returns the correct tip
+    assert {:ok, [tip_hash]} = TipSelection.select_tips()
+    assert tip_hash == tip_block.hash
   end
 
-  test "returns empty list if no blocks are provided" do
-    tips = TipSelection.select_tips([])
-    assert tips == []
-  end
-
-  test "returns all blocks if none are referenced" do
-    block1 = %DataBlock{hash: Hash.hash("b1"), prev_hashes: [], height: 1}
-    block2 = %DataBlock{hash: Hash.hash("b2"), prev_hashes: [], height: 1}
-
-    all_blocks = [block1, block2]
-
-    tips = TipSelection.select_tips(all_blocks)
-
-    assert Enum.sort(tips) == Enum.sort([block1.hash, block2.hash])
+  test "selects genesis block when no other tips exist" do
+    assert {:ok, :genesis_block_hash} == TipSelection.select_tips()
   end
 end

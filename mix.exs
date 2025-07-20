@@ -25,7 +25,7 @@ defmodule ProvChain.MixProject do
 
   # Specifies which paths to compile per environment
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
+  defp elixirc_paths(_), do: ["lib", "test/support"]
 
   # Run "mix help deps" to learn about dependencies
   defp deps do
@@ -52,7 +52,9 @@ defmodule ProvChain.MixProject do
       # Static analysis
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       # Documentation generation
-      {:ex_doc, "~> 0.30", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.30", only: :dev, runtime: false},
+      {:benchee, "~> 1.0", only: :dev},
+      {:benchee_html, "~> 1.0", only: :dev}
     ]
   end
 

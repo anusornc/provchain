@@ -2,7 +2,6 @@ defmodule ProvChain.BlockDag.DataBlockTest do
   use ExUnit.Case, async: true
 
   alias ProvChain.BlockDag.DataBlock
-  alias ProvChain.Crypto.Hash
 
   @tag :skip
   test "can create a new DataBlock" do
