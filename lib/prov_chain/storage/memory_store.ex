@@ -53,6 +53,17 @@ defmodule ProvChain.Storage.MemoryStore do
   end
 
   @doc """
+  Retrieves the height of a block from the cache by hash.
+  Returns the height or `0` if not found or cache disabled.
+  """
+  def get_block_height(hash) when is_binary(hash) do
+    case get_block(hash) do
+      {:ok, block} -> block.height
+      _ -> 0
+    end
+  end
+
+  @doc """
   Stores a transaction in the cache under the given hash.
   """
   def put_transaction(hash, tx) when is_binary(hash) do

@@ -6,11 +6,27 @@ defmodule ProvChain.BlockDag.BlockAggregationTest do
   alias ProvChain.BlockDag.AggregationBlock
   alias ProvChain.Crypto.Hash
 
+  alias ProvChain.Storage.MemoryStore
+
+  setup do
+    # Ensure MemoryStore is started and clear it before each test
+    unless Process.whereis(MemoryStore) do
+      {:ok, _pid} = MemoryStore.start_link()
+    end
+    MemoryStore.clear_tables()
+    :ok
+  end
+
   test "aggregates DataBlocks into an AggregationBlock" do
     # Create some dummy DataBlocks
     data_block_1 = %DataBlock{hash: Hash.hash("data1"), prev_hashes: [], height: 1}
     data_block_2 = %DataBlock{hash: Hash.hash("data2"), prev_hashes: [], height: 1}
     data_block_3 = %DataBlock{hash: Hash.hash("data3"), prev_hashes: [], height: 1}
+
+    # Store dummy DataBlocks in MemoryStore
+    MemoryStore.put_block(data_block_1.hash, data_block_1)
+    MemoryStore.put_block(data_block_2.hash, data_block_2)
+    MemoryStore.put_block(data_block_3.hash, data_block_3)
 
     data_blocks_to_aggregate = [data_block_1, data_block_2, data_block_3]
     validator = <<"agg_validator"::binary>>
@@ -34,6 +50,10 @@ defmodule ProvChain.BlockDag.BlockAggregationTest do
     # Create some dummy AggregationBlocks
     agg_block_1 = %AggregationBlock{hash: Hash.hash("agg1"), referenced_data_block_hashes: [], height: 2}
     agg_block_2 = %AggregationBlock{hash: Hash.hash("agg2"), referenced_data_block_hashes: [], height: 2}
+
+    # Store dummy AggregationBlocks in MemoryStore
+    MemoryStore.put_block(agg_block_1.hash, agg_block_1)
+    MemoryStore.put_block(agg_block_2.hash, agg_block_2)
 
     aggregation_blocks_to_aggregate = [agg_block_1, agg_block_2]
     validator = <<"cp_validator"::binary>>

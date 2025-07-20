@@ -14,6 +14,8 @@ defmodule ProvChain.BlockDag.CheckpointBlock do
   ]
 
   alias ProvChain.Crypto.Hash
+  alias ProvChain.BlockDag.Block
+  alias ProvChain.Storage.MemoryStore
 
   @type hash_type :: binary()
 
@@ -36,7 +38,8 @@ defmodule ProvChain.BlockDag.CheckpointBlock do
   ) :: t()
   def new(referenced_aggregation_block_hashes, validator, metadata) do
     timestamp = :os.system_time(:millisecond)
-    height = calculate_height(referenced_aggregation_block_hashes)
+    prev_heights = Enum.map(referenced_aggregation_block_hashes, &MemoryStore.get_block_height(&1))
+    height = Block.calculate_height(prev_heights)
 
     checkpoint_block = %__MODULE__{
       referenced_aggregation_block_hashes: referenced_aggregation_block_hashes,
@@ -49,10 +52,6 @@ defmodule ProvChain.BlockDag.CheckpointBlock do
 
     hash = calculate_hash(checkpoint_block)
     %{checkpoint_block | hash: hash}
-  end
-
-  defp calculate_height(_referenced_aggregation_block_hashes) do
-    3 # Checkpoint Blocks are level 3
   end
 
   defp calculate_hash(%__MODULE__{} = checkpoint_block) do

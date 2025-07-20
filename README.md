@@ -129,7 +129,7 @@ The project is being developed in several phases:
 - [x] Design PROV-O data model for UHT milk supply chain
 - [x] Implement transaction format with PROV-O entity-activity-agent model
 - [x] Create hybrid persistence layer (ETS/DETS + Internal RDF/SPARQL)
-- [ ] Develop adaptive block referencing mechanism with multi-level structure
+- [x] Develop adaptive block referencing mechanism with multi-level structure
 - [x] Complete transaction signing and verification
 
 ### Phase 2: PROV-O & Supply Chain Integration

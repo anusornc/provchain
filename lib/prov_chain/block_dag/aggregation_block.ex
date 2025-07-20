@@ -14,6 +14,8 @@ defmodule ProvChain.BlockDag.AggregationBlock do
   ]
 
   alias ProvChain.Crypto.Hash
+  alias ProvChain.BlockDag.Block
+  alias ProvChain.Storage.MemoryStore
 
   @type hash_type :: binary()
 
@@ -36,7 +38,8 @@ defmodule ProvChain.BlockDag.AggregationBlock do
   ) :: t()
   def new(referenced_data_block_hashes, validator, metadata) do
     timestamp = :os.system_time(:millisecond)
-    height = calculate_height(referenced_data_block_hashes)
+    prev_heights = Enum.map(referenced_data_block_hashes, &MemoryStore.get_block_height(&1))
+    height = Block.calculate_height(prev_heights)
 
     aggregation_block = %__MODULE__{
       referenced_data_block_hashes: referenced_data_block_hashes,
@@ -49,10 +52,6 @@ defmodule ProvChain.BlockDag.AggregationBlock do
 
     hash = calculate_hash(aggregation_block)
     %{aggregation_block | hash: hash}
-  end
-
-  defp calculate_height(_referenced_data_block_hashes) do
-    2 # Aggregation Blocks are level 2
   end
 
   defp calculate_hash(%__MODULE__{} = aggregation_block) do

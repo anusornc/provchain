@@ -16,6 +16,8 @@ defmodule ProvChain.BlockDag.DataBlock do
   ]
 
   alias ProvChain.Crypto.Hash
+  alias ProvChain.BlockDag.Block
+  alias ProvChain.Storage.MemoryStore
 
   @type hash_type :: binary()
   @type transaction_type :: map()
@@ -43,7 +45,8 @@ defmodule ProvChain.BlockDag.DataBlock do
   ) :: t()
   def new(prev_hashes, transactions, validator, supply_chain_type, metadata) do
     timestamp = :os.system_time(:millisecond)
-    height = calculate_height(prev_hashes)
+    prev_heights = Enum.map(prev_hashes, &MemoryStore.get_block_height(&1))
+    height = Block.calculate_height(prev_heights)
     
     data_block = %__MODULE__{
       prev_hashes: prev_hashes,
@@ -58,16 +61,6 @@ defmodule ProvChain.BlockDag.DataBlock do
 
     hash = calculate_hash(data_block)
     %{data_block | hash: hash}
-  end
-
-  defp calculate_height(prev_hashes) do
-    if Enum.empty?(prev_hashes) do
-      1
-    else
-      # For simplicity, assume height is max(prev_block_heights) + 1
-      # In a real DAG, this would involve querying previous blocks' heights
-      2 # Assuming previous DataBlocks are at height 1, so new height is 2
-    end
   end
 
   defp calculate_hash(%__MODULE__{} = data_block) do

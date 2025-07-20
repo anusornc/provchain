@@ -53,7 +53,8 @@ defmodule ProvChain.BlockDag.Block do
            is_binary(validator) and is_binary(supply_chain_type) and
            is_map(metadata) do
     timestamp = :os.system_time(:millisecond)
-    height = calculate_height(prev_hashes)
+    prev_heights = Enum.map(prev_hashes, &ProvChain.Storage.MemoryStore.get_block_height(&1))
+    height = calculate_height(prev_heights)
     dag_weight = calculate_weight(prev_hashes, height)
     merkle_root = calculate_merkle_root(transactions)
 
@@ -99,9 +100,14 @@ defmodule ProvChain.BlockDag.Block do
   @doc """
   Calculates the height of the block based on previous blocks.
   """
-  @spec calculate_height(list(hash_type())) :: non_neg_integer()
-  def calculate_height([]), do: 0
-  def calculate_height(_prev_hashes), do: 1
+  @spec calculate_height(list(non_neg_integer())) :: non_neg_integer()
+  def calculate_height(prev_heights) do
+    if Enum.empty?(prev_heights) do
+      0
+    else
+      Enum.max(prev_heights) + 1
+    end
+  end
 
   @doc """
   Calculates the DAG weight based on the PHANTOM algorithm adapted for dairy chain.
